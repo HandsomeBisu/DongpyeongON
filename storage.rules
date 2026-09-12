@@ -1,0 +1,38 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isSchoolAccount() {
+      return request.auth != null
+        && request.auth.token.email is string
+        && request.auth.token.email_verified == true
+        && request.auth.token.email.matches('^[^@]+@dongpyeong[.]ms[.]kr$');
+    }
+
+    function isOwner(userId) {
+      return isSchoolAccount() && request.auth.uid == userId;
+    }
+
+    function isSafeImage() {
+      return request.resource != null
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    match /users/{userId}/{allPaths=**} {
+      allow read: if isSchoolAccount();
+      allow create, update: if isOwner(userId) && isSafeImage();
+      allow delete: if isOwner(userId);
+    }
+
+    match /posts/{userId}/{allPaths=**} {
+      allow read: if isSchoolAccount();
+      allow create, update: if isOwner(userId) && isSafeImage();
+      allow delete: if isOwner(userId);
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

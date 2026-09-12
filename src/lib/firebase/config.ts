@@ -1,12 +1,14 @@
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
-};
+import type { FirebaseOptions } from "firebase/app";
 
-export const isFirebaseConfigured = [firebaseConfig.apiKey, firebaseConfig.authDomain, firebaseConfig.projectId, firebaseConfig.storageBucket, firebaseConfig.messagingSenderId, firebaseConfig.appId].every(Boolean);
+const firebaseConfig = {
+  apiKey: "AIzaSyCp-ggNSFXMEvdblyR8tr28QGZDcOFU3RI",
+  authDomain: "dongpyeong-on.firebaseapp.com",
+  projectId: "dongpyeong-on",
+  storageBucket: "dongpyeong-on.firebasestorage.app",
+  messagingSenderId: "398573249563",
+  appId: "1:398573249563:web:cf0a7886a33ce77673c4be",
+  measurementId: "G-FL4C34DRDX",
+} satisfies FirebaseOptions;
+
+export const isFirebaseConfigured = true;
 export default firebaseConfig;

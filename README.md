@@ -12,8 +12,8 @@
 
 ## 로컬 실행
 
-1. `.env.example`을 `.env.local`로 복사하고 Firebase 값을 입력합니다.
-2. Firebase Authentication에서 Google 로그인을 활성화합니다.
+1. Firebase Authentication에서 Google 로그인과 이메일 링크 로그인을 활성화합니다.
+2. 서버 기능이 필요하면 `.env.example`을 `.env.local`로 복사하고 Firebase Admin SDK 값을 입력합니다.
 3. 아래 명령을 실행합니다.
 
 ```bash
@@ -21,15 +21,13 @@ pnpm install
 pnpm dev
 ```
 
-Firebase 값이 없어도 초기 화면은 실행되며 로그인 버튼 대신 설정 안내가 표시됩니다.
-
-학교 Google Workspace 도메인이 있다면 `NEXT_PUBLIC_ALLOWED_EMAIL_DOMAIN`에
-`school.example.kr`처럼 `@`를 제외한 도메인을 입력합니다.
+Firebase Web SDK의 공개 프로젝트 정보는 `src/lib/firebase/config.ts`에 포함되어 있습니다.
+로그인과 데이터 접근은 인증을 마친 `@dongpyeong.ms.kr` 학교 계정으로 제한됩니다.
 
 ## Firebase 규칙과 인덱스 배포
 
 ```bash
-firebase deploy --only firestore:rules,firestore:indexes
+firebase deploy --only firestore:rules,firestore:indexes,storage
 ```
 
 ## 검사
@@ -42,7 +40,7 @@ pnpm build
 
 ## 보안 주의사항
 
-- `NEXT_PUBLIC_*` 외의 비밀값은 클라이언트 컴포넌트에서 사용하지 않습니다.
+- Firebase Web SDK 설정값은 공개 식별 정보이며, Admin SDK 비공개 키는 서버 환경 변수로만 관리합니다.
 - 관리자 역할은 Firebase Auth Custom Claims로 부여합니다.
 - 신문고 조회/저장은 Firebase Admin SDK를 사용하는 서버 Route Handler를 통합니다.
 - Firestore와 Storage Rules는 배포 전 Emulator 테스트를 추가해야 합니다.
