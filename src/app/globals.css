@@ -1,0 +1,38 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f2f2f7;
+  --foreground: #1c1c1e;
+  --surface: #ffffff;
+  --sidebar: #f2f2f7;
+  --primary: #007aff;
+  --primary-strong: #0066d6;
+  --muted: #6e6e73;
+  --border: rgb(60 60 67 / 14%);
+  --hover: rgb(118 118 128 / 10%);
+}
+
+* { box-sizing: border-box; }
+html { background: var(--background); scroll-behavior: smooth; }
+body { min-height: 100vh; margin: 0; padding-bottom: 4.5rem; background: radial-gradient(circle at 50% -20%, #fff 0, transparent 36rem), var(--background); color: var(--foreground); font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; }
+button, a, input, textarea, select { transition: color 180ms ease, background-color 180ms ease, border-color 180ms ease, box-shadow 220ms ease, transform 380ms cubic-bezier(.2,.9,.2,1); }
+button, a { -webkit-tap-highlight-color: transparent; }
+button:not(:disabled) { cursor: pointer; }
+::selection { background: rgb(0 122 255 / 22%); }
+
+.ios-card { border: 1px solid rgb(60 60 67 / 10%); background: rgb(255 255 255 / 88%); border-radius: 22px; box-shadow: 0 1px 2px rgb(0 0 0 / 3%), 0 12px 32px rgb(0 0 0 / 4%); backdrop-filter: blur(24px) saturate(160%); }
+.hero-card { background: linear-gradient(135deg, #0a84ff 0%, #1677e8 48%, #5e5ce6 100%); }
+.ios-card-interactive:hover { transform: translateY(-3px) scale(1.006); box-shadow: 0 2px 4px rgb(0 0 0 / 4%), 0 18px 38px rgb(0 0 0 / 7%); }
+.glass-bar { background: rgb(248 248 250 / 78%); border-bottom: 1px solid rgb(60 60 67 / 12%); backdrop-filter: blur(28px) saturate(180%); }
+
+@keyframes ios-enter { from { opacity: 0; transform: translateY(14px) scale(.985); filter: blur(5px); } to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); } }
+@keyframes ios-pop { 0% { opacity: 0; transform: scale(.88); } 70% { transform: scale(1.025); } 100% { opacity: 1; transform: scale(1); } }
+@keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+.page-enter { animation: ios-enter 560ms cubic-bezier(.22,1,.36,1) both; }
+.stagger-item { animation: ios-enter 520ms cubic-bezier(.22,1,.36,1) both; }
+.stagger-item:nth-child(2) { animation-delay: 70ms; }
+.stagger-item:nth-child(3) { animation-delay: 140ms; }
+.ios-pop { animation: ios-pop 520ms cubic-bezier(.2,.9,.2,1) both; }
+.soft-pulse { animation: shimmer 2s linear infinite; background: linear-gradient(90deg,#c7c7cc 30%,#eeeef0 50%,#c7c7cc 70%); background-size: 200% 100%; color: transparent; border-radius: 999px; }
+@media (prefers-reduced-motion: reduce) { *,*::before,*::after { scroll-behavior: auto!important; animation-duration:.01ms!important; animation-iteration-count:1!important; transition-duration:.01ms!important; } }
+@media (min-width: 768px) { body { padding-bottom: 0; } }
