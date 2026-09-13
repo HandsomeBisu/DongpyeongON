@@ -3,9 +3,8 @@
 import Link from "next/link";
 import { ArrowLeft, ExternalLink, MessagesSquare } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useAuth } from "@/components/auth/auth-provider";
 import { SiteHeader } from "@/components/site-header";
-import { authenticatedFetch } from "@/lib/authenticated-fetch";
+import { adminFetch } from "@/lib/admin-fetch";
 import type { ContentStatus } from "@/types/domain";
 
 type AdminPost = { id: string; title: string; category: string; authorNickname: string; status: ContentStatus; likeCount: number; commentCount: number; createdAt: string | null };
@@ -17,23 +16,20 @@ const statuses: Array<{ value: ContentStatus; label: string }> = [
 ];
 
 export function AdminCommunity() {
-  const { user } = useAuth();
   const [posts, setPosts] = useState<AdminPost[]>([]);
   const [message, setMessage] = useState("게시물을 불러오고 있어요.");
   const [busy, setBusy] = useState("");
 
   useEffect(() => {
-    if (!user) return;
-    authenticatedFetch(user, "/api/admin/posts").then(async (response) => {
-      if (!response.ok) { setMessage(response.status === 423 ? "커뮤니티 관리 비밀번호 인증이 필요해요." : response.status === 403 ? "관리자만 접근할 수 있어요." : "게시물을 불러오지 못했어요."); return; }
+    adminFetch("/api/admin/posts").then(async (response) => {
+      if (!response.ok) { setMessage(response.status === 423 ? "커뮤니티 관리 비밀번호 인증이 필요해요." : "게시물을 불러오지 못했어요."); return; }
       setPosts((await response.json()).posts); setMessage("");
     }).catch(() => setMessage("게시물을 불러오지 못했어요."));
-  }, [user]);
+  }, []);
 
   async function changeStatus(id: string, status: ContentStatus) {
-    if (!user) return;
     setBusy(id);
-    const response = await authenticatedFetch(user, `/api/admin/posts/${id}`, { method: "PATCH", body: JSON.stringify({ status }) });
+    const response = await adminFetch(`/api/admin/posts/${id}`, { method: "PATCH", body: JSON.stringify({ status }) });
     if (response.ok) { setPosts((items) => items.map((item) => item.id === id ? { ...item, status } : item)); setMessage("게시물 상태를 변경했어요."); }
     else setMessage("게시물 상태를 변경하지 못했어요.");
     setBusy("");

@@ -5,6 +5,7 @@ import { Activity, Bell, Clock3, Flame, Home, Inbox, LogIn, Megaphone, MessageCi
 import { useState } from "react";
 import { AuthButton } from "@/components/auth/auth-button";
 import { BrandLogo } from "@/components/brand-logo";
+import { COMMUNITY_DISABLED_MESSAGE, COMMUNITY_ENABLED } from "@/lib/community-availability";
 
 const ranges = ["1시간", "1일", "7일", "30일"];
 const mobileLinks = [{ href: "/", label: "홈", icon: Home }, { href: "/community", label: "커뮤니티", icon: MessageCircle }, { href: "/suggestions", label: "신문고", icon: Inbox }, { href: "/music", label: "신청곡", icon: Music2 }];
@@ -32,15 +33,15 @@ export default function HomePage() {
     <main className="page-enter mx-auto grid max-w-6xl gap-8 px-5 py-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start lg:py-10">
       <div className="space-y-10">
         <DashboardSection icon={<Activity size={25}/>} title="실시간 인기글">
-          <EmptyPanel className="min-h-[190px]" text="아직 등록된 게시글이 없어요." action="첫 글 작성하기" href="/community"/>
+          <EmptyPanel className="min-h-[190px]" text={COMMUNITY_ENABLED ? "아직 등록된 게시글이 없어요." : COMMUNITY_DISABLED_MESSAGE} action={COMMUNITY_ENABLED ? "첫 글 작성하기" : "안내 확인하기"} href="/community"/>
         </DashboardSection>
 
-        <DashboardSection icon={<Flame size={24}/>} title="HOT 게시글" trailing={<div className="flex rounded-xl bg-[#e9e9ed] p-1">{ranges.map((item) => <button key={item} onClick={() => setRange(item)} className={`rounded-[9px] px-3 py-1.5 text-xs font-medium ${range === item ? "bg-white text-[var(--foreground)] shadow-sm" : "text-[var(--muted)] hover:text-[var(--foreground)]"}`}>{item}</button>)}</div>}>
-          <EmptyPanel className="min-h-[260px]" text={`${range} 동안 인기 게시글이 없어요.`}/>
+        <DashboardSection icon={<Flame size={24}/>} title="HOT 게시글" trailing={COMMUNITY_ENABLED ? <div className="flex rounded-xl bg-[#e9e9ed] p-1">{ranges.map((item) => <button key={item} onClick={() => setRange(item)} className={`rounded-[9px] px-3 py-1.5 text-xs font-medium ${range === item ? "bg-white text-[var(--foreground)] shadow-sm" : "text-[var(--muted)] hover:text-[var(--foreground)]"}`}>{item}</button>)}</div> : <span className="rounded-full bg-[#e5f1ff] px-3 py-1.5 text-xs font-semibold text-[#007aff]">일시 중단</span>}>
+          <EmptyPanel className="min-h-[260px]" text={COMMUNITY_ENABLED ? `${range} 동안 인기 게시글이 없어요.` : COMMUNITY_DISABLED_MESSAGE}/>
         </DashboardSection>
 
         <DashboardSection icon={<Clock3 size={24}/>} title="최신 게시글" trailing={<Link href="/community" className="text-sm font-medium text-[#007aff]">전체 보기</Link>}>
-          <EmptyPanel className="min-h-[180px]" text="새로운 이야기를 기다리고 있어요." action="커뮤니티 둘러보기" href="/community"/>
+          <EmptyPanel className="min-h-[180px]" text={COMMUNITY_ENABLED ? "새로운 이야기를 기다리고 있어요." : COMMUNITY_DISABLED_MESSAGE} action={COMMUNITY_ENABLED ? "커뮤니티 둘러보기" : "안내 확인하기"} href="/community"/>
         </DashboardSection>
       </div>
 

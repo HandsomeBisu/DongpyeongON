@@ -2,7 +2,6 @@ import "server-only";
 
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
-import { verifyApiRequest } from "@/lib/api-auth";
 
 export const ADMIN_CATEGORIES = ["users", "music", "community"] as const;
 export type AdminCategory = (typeof ADMIN_CATEGORIES)[number];
@@ -39,29 +38,26 @@ export function verifyAdminPassword(category: AdminCategory, password: string) {
   return safeEqual(password, expected);
 }
 
-export function createAdminSession(category: AdminCategory, uid: string) {
-  const payload = Buffer.from(JSON.stringify({ category, uid, expiresAt: Date.now() + 4 * 60 * 60 * 1000 })).toString("base64url");
+export function createAdminSession(category: AdminCategory) {
+  const payload = Buffer.from(JSON.stringify({ category, expiresAt: Date.now() + 4 * 60 * 60 * 1000 })).toString("base64url");
   return `${payload}.${sign(payload)}`;
 }
 
-async function verifySession(category: AdminCategory, uid: string) {
+async function verifySession(category: AdminCategory) {
   const token = (await cookies()).get(cookieName(category))?.value;
   if (!token) return false;
   const [payload, signature] = token.split(".");
   if (!payload || !signature || !safeEqual(signature, sign(payload))) return false;
   try {
-    const parsed = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as { category?: string; uid?: string; expiresAt?: number };
-    return parsed.category === category && parsed.uid === uid && typeof parsed.expiresAt === "number" && parsed.expiresAt > Date.now();
+    const parsed = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as { category?: string; expiresAt?: number };
+    return parsed.category === category && typeof parsed.expiresAt === "number" && parsed.expiresAt > Date.now();
   } catch {
     return false;
   }
 }
 
-export async function verifyAdminCategoryRequest(request: Request, category: AdminCategory) {
-  const admin = await verifyApiRequest(request);
-  if (admin.role !== "admin") throw new Error("FORBIDDEN");
-  if (!(await verifySession(category, admin.uid))) throw new Error("ADMIN_LOCKED");
-  return admin;
+export async function verifyAdminCategoryRequest(_request: Request, category: AdminCategory) {
+  if (!(await verifySession(category))) throw new Error("ADMIN_LOCKED");
 }
 
 export function adminCookie(category: AdminCategory, value: string, maxAge = 4 * 60 * 60) {

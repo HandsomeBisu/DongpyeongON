@@ -76,7 +76,7 @@ async function spotifyFetch(path: string) {
 }
 
 export async function searchSpotifyTracks(query: string) {
-  const params = new URLSearchParams({ q: query, type: "track", market: "KR", limit: "10" });
+  const params = new URLSearchParams({ q: query, type: "track", market: "KR", limit: "20" });
   const response = await spotifyFetch(`/search?${params}`);
   const data = await response.json() as { tracks?: { items?: SpotifyTrackResponse[] } };
   return (data.tracks?.items ?? []).filter((track) => Boolean(track.id && track.name)).map(mapTrack);

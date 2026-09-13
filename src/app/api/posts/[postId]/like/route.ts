@@ -1,8 +1,10 @@
 import { FieldValue } from "firebase-admin/firestore";
 import { apiError, verifyApiRequest } from "@/lib/api-auth";
+import { COMMUNITY_DISABLED_MESSAGE, COMMUNITY_ENABLED } from "@/lib/community-availability";
 import { getAdminDb } from "@/lib/firebase/admin";
 
 export async function POST(request: Request, { params }: { params: Promise<{ postId: string }> }) {
+  if (!COMMUNITY_ENABLED) return Response.json({ error: COMMUNITY_DISABLED_MESSAGE }, { status: 503, headers: { "Cache-Control": "no-store" } });
   try {
     const user = await verifyApiRequest(request); const { postId } = await params; const db = getAdminDb();
     const postRef = db.collection("posts").doc(postId); const likeRef = postRef.collection("likes").doc(user.uid);

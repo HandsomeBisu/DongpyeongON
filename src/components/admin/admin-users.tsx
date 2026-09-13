@@ -3,29 +3,25 @@
 import Link from "next/link";
 import { ArrowLeft, ShieldCheck, Users } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useAuth } from "@/components/auth/auth-provider";
 import { SiteHeader } from "@/components/site-header";
-import { authenticatedFetch } from "@/lib/authenticated-fetch";
+import { adminFetch } from "@/lib/admin-fetch";
 import type { UserRole } from "@/types/domain";
 
 type UserRow = { uid: string; displayName: string; email: string; role: UserRole };
 
 export function AdminUsers() {
-  const { user } = useAuth();
   const [users, setUsers] = useState<UserRow[]>([]);
-  const [message, setMessage] = useState("관리자 권한을 확인하고 있어요.");
+  const [message, setMessage] = useState("사용자 목록을 불러오고 있어요.");
 
   useEffect(() => {
-    if (!user) return;
-    authenticatedFetch(user, "/api/admin/users").then(async (response) => {
-      if (!response.ok) { setMessage(response.status === 423 ? "사용자 관리 비밀번호 인증이 필요해요." : response.status === 403 ? "관리자만 접근할 수 있습니다." : "사용자 목록을 불러오지 못했습니다."); return; }
+    adminFetch("/api/admin/users").then(async (response) => {
+      if (!response.ok) { setMessage(response.status === 423 ? "사용자 관리 비밀번호 인증이 필요해요." : "사용자 목록을 불러오지 못했습니다."); return; }
       setUsers((await response.json()).users); setMessage("");
     }).catch(() => setMessage("Firebase Admin 설정을 확인해 주세요."));
-  }, [user]);
+  }, []);
 
   async function changeRole(uid: string, role: UserRole) {
-    if (!user) return;
-    const response = await authenticatedFetch(user, `/api/admin/users/${uid}/role`, { method: "PATCH", body: JSON.stringify({ role }) });
+    const response = await adminFetch(`/api/admin/users/${uid}/role`, { method: "PATCH", body: JSON.stringify({ role }) });
     if (response.ok) { setUsers((rows) => rows.map((row) => row.uid === uid ? { ...row, role } : row)); setMessage("역할을 변경했습니다. 대상 사용자는 다시 로그인해야 적용됩니다."); }
     else setMessage("역할을 변경하지 못했습니다.");
   }
