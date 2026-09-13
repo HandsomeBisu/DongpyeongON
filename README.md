@@ -13,7 +13,7 @@
 ## 로컬 실행
 
 1. Firebase Authentication에서 Google 로그인과 이메일/비밀번호 로그인을 활성화합니다.
-2. 서버 기능이 필요하면 `.env.example`을 `.env.local`로 복사하고 Firebase Admin SDK 값을 입력합니다.
+2. `.env.example`을 `.env.local`로 복사하고 Firebase Admin SDK와 SMTP 값을 입력합니다.
 3. 아래 명령을 실행합니다.
 
 ```bash
@@ -29,6 +29,16 @@ Firebase Web SDK의 공개 프로젝트 정보는 `src/lib/firebase/config.ts`�
 다음 값은 모두 서버 전용이므로 `NEXT_PUBLIC_` 접두사를 붙이지 않습니다.
 
 ```text
+FIREBASE_ADMIN_PROJECT_ID=
+FIREBASE_ADMIN_CLIENT_EMAIL=
+FIREBASE_ADMIN_PRIVATE_KEY=
+SMTP_HOST=
+SMTP_PORT=465
+SMTP_SECURE=true
+SMTP_USER=
+SMTP_PASSWORD=
+SMTP_FROM=
+EMAIL_VERIFICATION_SECRET=
 SPOTIFY_CLIENT_ID=
 SPOTIFY_CLIENT_SECRET=
 ADMIN_USERS_PASSWORD=
@@ -36,6 +46,8 @@ ADMIN_MUSIC_PASSWORD=
 ADMIN_COMMUNITY_PASSWORD=
 ADMIN_SESSION_SECRET=
 ```
+
+이메일/비밀번호 가입은 Firebase 계정을 만든 뒤 자체 SMTP로 6자리 인증 코드를 발송합니다. 코드는 해시로만 저장되며 10분 후 만료되고, 계정별 60초 재발송 제한, IP별 10분당 100회 요청 제한, 5회 입력 제한이 적용됩니다. `SMTP_PORT=465`이면 일반적으로 `SMTP_SECURE=true`, STARTTLS를 사용하는 `587`이면 `false`로 설정합니다. `EMAIL_VERIFICATION_SECRET`은 32자 이상의 별도 무작위 값이어야 합니다.
 
 `ADMIN_SESSION_SECRET`은 관리자 영역 세션 쿠키 서명에 사용되며 32자 이상의 무작위 값으로 설정합니다. 관리자 영역 비밀번호는 브라우저 번들이나 저장소에 포함되지 않습니다.
 

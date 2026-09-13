@@ -106,5 +106,14 @@ service cloud.firestore {
       // Daily limits and moderation are enforced by authenticated server routes.
       allow read, write: if false;
     }
+
+    match /emailVerificationChallenges/{userId} {
+      // Verification codes are managed only by trusted server routes.
+      allow read, write: if false;
+    }
+
+    match /emailVerificationIpLimits/{ipHash} {
+      allow read, write: if false;
+    }
   }
 }

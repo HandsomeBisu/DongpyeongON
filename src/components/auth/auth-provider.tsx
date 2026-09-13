@@ -1,6 +1,6 @@
 "use client";
 
-import { createUserWithEmailAndPassword, GoogleAuthProvider, onAuthStateChanged, sendEmailVerification, signInWithEmailAndPassword, signInWithPopup, signOut as firebaseSignOut, updateProfile as updateFirebaseProfile, type User } from "firebase/auth";
+import { createUserWithEmailAndPassword, GoogleAuthProvider, onAuthStateChanged, signInWithEmailAndPassword, signInWithPopup, signOut as firebaseSignOut, updateProfile as updateFirebaseProfile, type User } from "firebase/auth";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { getFirebaseClient } from "@/lib/firebase/client";
@@ -28,10 +28,6 @@ function allowed(user: User) {
   return Boolean(user.email && isSchoolEmail(user.email) && user.emailVerified);
 }
 
-function verificationSettings() {
-  return { url: `${window.location.origin}/verify-email?verified=1` };
-}
-
 function authErrorMessage(caught: unknown, mode: "login" | "register") {
   const code = typeof caught === "object" && caught && "code" in caught ? String(caught.code) : "";
   if (code === "auth/email-already-in-use") return "이미 가입된 학교 이메일입니다. 로그인해 주세요.";
@@ -40,6 +36,15 @@ function authErrorMessage(caught: unknown, mode: "login" | "register") {
   if (code === "auth/operation-not-allowed") return "Firebase Console에서 이메일/비밀번호 로그인을 활성화해 주세요.";
   if (code === "auth/invalid-credential" || code === "auth/user-not-found" || code === "auth/wrong-password") return "이메일 또는 비밀번호가 올바르지 않습니다.";
   return mode === "register" ? "계정을 만들지 못했습니다. 다시 시도해 주세요." : "로그인하지 못했습니다. 다시 시도해 주세요.";
+}
+
+async function requestVerificationCode(user: User) {
+  const response = await fetch("/api/auth/email-verification/request", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${await user.getIdToken()}` },
+  });
+  const payload = await response.json().catch(() => ({})) as { error?: string };
+  if (!response.ok) throw new Error(payload.error || "인증 코드를 보내지 못했습니다.");
 }
 
 async function ensureProfile(user: User) {
@@ -106,9 +111,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { auth } = getFirebaseClient();
       const result = await signInWithEmailAndPassword(auth, normalized, password);
       if (!result.user.emailVerified) {
-        await sendEmailVerification(result.user, verificationSettings());
-        await firebaseSignOut(auth);
-        return "verification-sent";
+        try {
+          await requestVerificationCode(result.user);
+          return "verification-sent";
+        } catch (caught) {
+          setError(caught instanceof Error ? caught.message : "인증 코드를 보내지 못했습니다.");
+          return false;
+        } finally {
+          await firebaseSignOut(auth);
+        }
       }
       if (!allowed(result.user)) {
         await firebaseSignOut(auth);
@@ -132,9 +143,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const { auth } = getFirebaseClient();
       const result = await createUserWithEmailAndPassword(auth, normalized, password);
-      await sendEmailVerification(result.user, verificationSettings());
-      await firebaseSignOut(auth);
-      return "verification-sent";
+      try {
+        await requestVerificationCode(result.user);
+        return "verification-sent";
+      } catch (caught) {
+        setError(caught instanceof Error ? caught.message : "인증 코드를 보내지 못했습니다.");
+        return false;
+      } finally {
+        await firebaseSignOut(auth);
+      }
     } catch (caught) {
       setError(authErrorMessage(caught, "register"));
       return false;
