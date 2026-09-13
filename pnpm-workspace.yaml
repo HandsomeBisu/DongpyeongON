@@ -1,3 +1,7 @@
+# firebase-admin 14 pulls a CommonJS jwks-rsa build that cannot require ESM-only jose 6 on Vercel.
+overrides:
+  "jwks-rsa>jose": "4.15.9"
+
 allowBuilds:
   '@firebase/util': false
   protobufjs: false

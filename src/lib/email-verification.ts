@@ -1,7 +1,6 @@
 import "server-only";
 
 import { createHmac, randomInt } from "node:crypto";
-import nodemailer from "nodemailer";
 
 export const VERIFICATION_CODE_TTL_MS = 10 * 60 * 1000;
 export const VERIFICATION_RESEND_COOLDOWN_MS = 60 * 1000;
@@ -50,6 +49,7 @@ function smtpSecure(port: number) {
 }
 
 export async function sendVerificationCode(email: string, code: string) {
+  const { default: nodemailer } = await import("nodemailer");
   const port = smtpPort();
   const transporter = nodemailer.createTransport({
     host: requiredEnvironmentVariable("SMTP_HOST"),

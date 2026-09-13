@@ -1,9 +1,6 @@
 import { timingSafeEqual } from "node:crypto";
-import { Timestamp } from "firebase-admin/firestore";
 import { z } from "zod";
-import { getAdminAuth, getAdminDb } from "@/lib/firebase/admin";
 import { isSchoolEmail, normalizeEmail } from "@/lib/firebase/school-email";
-import { hashVerificationCode, VERIFICATION_MAX_ATTEMPTS } from "@/lib/email-verification";
 
 export const runtime = "nodejs";
 
@@ -31,10 +28,17 @@ export async function POST(request: Request) {
     const parsed = confirmationSchema.safeParse(await request.json());
     if (!parsed.success) return Response.json({ error: "학교 이메일과 6자리 인증 코드를 확인해 주세요." }, { status: 400 });
 
-    const user = await getAdminAuth().getUserByEmail(parsed.data.email).catch(() => null);
+    const [{ Timestamp }, { getAdminAuth, getAdminDb }, { hashVerificationCode, VERIFICATION_MAX_ATTEMPTS }] = await Promise.all([
+      import("firebase-admin/firestore"),
+      import("@/lib/firebase/admin"),
+      import("@/lib/email-verification"),
+    ]);
+    const adminAuth = getAdminAuth();
+    const db = getAdminDb();
+    const user = await adminAuth.getUserByEmail(parsed.data.email).catch(() => null);
     if (!user || !isSchoolEmail(user.email ?? "")) return confirmationError("invalid");
 
-    const challengeRef = getAdminDb().collection("emailVerificationChallenges").doc(user.uid);
+    const challengeRef = db.collection("emailVerificationChallenges").doc(user.uid);
     if (user.emailVerified) {
       await challengeRef.delete().catch(() => undefined);
       return Response.json({ verified: true });
@@ -42,7 +46,7 @@ export async function POST(request: Request) {
 
     const suppliedHash = hashVerificationCode(user.uid, parsed.data.code);
     const now = Date.now();
-    const outcome = await getAdminDb().runTransaction<VerificationOutcome>(async (transaction) => {
+    const outcome = await db.runTransaction<VerificationOutcome>(async (transaction) => {
       const challenge = await transaction.get(challengeRef);
       if (!challenge.exists) return "invalid";
       const data = challenge.data()!;
@@ -68,13 +72,16 @@ export async function POST(request: Request) {
 
     if (outcome !== "valid") return confirmationError(outcome);
 
-    await getAdminAuth().updateUser(user.uid, { emailVerified: true });
+    await adminAuth.updateUser(user.uid, { emailVerified: true });
     await challengeRef.delete();
     return Response.json({ verified: true });
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
     if (message === "EMAIL_VERIFICATION_NOT_CONFIGURED") {
       return Response.json({ error: "이메일 인증 설정이 완료되지 않았습니다." }, { status: 503 });
+    }
+    if (message === "FIREBASE_ADMIN_NOT_CONFIGURED" || message === "FIREBASE_ADMIN_INVALID_CONFIG") {
+      return Response.json({ error: "Firebase Admin 환경 변수 설정을 확인해 주세요." }, { status: 503 });
     }
     console.error("Failed to confirm an email verification code", error);
     return Response.json({ error: "인증 코드를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요." }, { status: 500 });

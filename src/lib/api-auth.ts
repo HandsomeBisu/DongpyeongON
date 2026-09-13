@@ -22,6 +22,7 @@ export function apiError(error: unknown) {
   const message = error instanceof Error ? error.message : "";
   if (message === "UNAUTHORIZED") return Response.json({ error: "로그인이 필요합니다." }, { status: 401 });
   if (message === "FORBIDDEN") return Response.json({ error: "권한이 없습니다." }, { status: 403 });
+  if (message === "FIREBASE_ADMIN_NOT_CONFIGURED" || message === "FIREBASE_ADMIN_INVALID_CONFIG") return Response.json({ error: "Firebase Admin 환경 변수 설정을 확인해 주세요." }, { status: 503 });
   if (message === "ADMIN_LOCKED") return Response.json({ error: "관리자 비밀번호 인증이 필요합니다." }, { status: 423 });
   if (message === "ADMIN_NOT_CONFIGURED") return Response.json({ error: "관리자 환경 변수가 설정되지 않았습니다." }, { status: 503 });
   return Response.json({ error: "요청을 처리하지 못했습니다." }, { status: 500 });

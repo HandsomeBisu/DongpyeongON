@@ -12,10 +12,14 @@ function getAdminApp() {
   const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, "\n");
 
   if (!projectId || !clientEmail || !privateKey) {
-    throw new Error("Firebase Admin 환경변수가 설정되지 않았습니다.");
+    throw new Error("FIREBASE_ADMIN_NOT_CONFIGURED");
   }
 
-  return initializeApp({ credential: cert({ projectId, clientEmail, privateKey }) });
+  try {
+    return initializeApp({ credential: cert({ projectId, clientEmail, privateKey }) });
+  } catch {
+    throw new Error("FIREBASE_ADMIN_INVALID_CONFIG");
+  }
 }
 
 export const getAdminAuth = () => getAuth(getAdminApp());
