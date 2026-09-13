@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, LoaderCircle } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, LoaderCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import { BrandLogo } from "@/components/brand-logo";
@@ -14,20 +14,24 @@ function GoogleMark() {
 
 export function LoginPanel() {
   const router = useRouter();
-  const { user, loading, configured, error, signIn, sendEmailLink } = useAuth();
+  const { user, profile, loading, configured, error, signIn, signInWithPassword, registerWithPassword } = useAuth();
+  const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [password, setPassword] = useState("");
+  const [passwordConfirm, setPasswordConfirm] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [action, setAction] = useState<"google" | "email" | null>(null);
   const [localError, setLocalError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (user) router.replace("/");
-  }, [router, user]);
+    if (user && profile) router.replace(profile.onboardingCompleted ? "/" : "/onboarding");
+  }, [profile, router, user]);
 
   async function continueWithGoogle() {
     setLocalError(null);
-    setBusy(true);
+    setAction("google");
     try { await signIn(); }
-    finally { setBusy(false); }
+    finally { setAction(null); }
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -37,26 +41,45 @@ export function LoginPanel() {
       setLocalError(`@${SCHOOL_EMAIL_DOMAIN}로 끝나는 학교 이메일을 입력해 주세요.`);
       return;
     }
-    setBusy(true);
+    if (password.length < 8) {
+      setLocalError("비밀번호는 8자 이상 입력해 주세요.");
+      return;
+    }
+    if (mode === "register" && password !== passwordConfirm) {
+      setLocalError("비밀번호 확인이 일치하지 않습니다.");
+      return;
+    }
+    setAction("email");
     try {
-      if (await sendEmailLink(email)) router.push("/verify-email");
-    } finally { setBusy(false); }
+      const result = mode === "register" ? await registerWithPassword(email, password) : await signInWithPassword(email, password);
+      if (result === "verification-sent") router.push("/verify-email");
+      if (result === "signed-in") router.replace("/");
+    } finally { setAction(null); }
   }
 
-  const disabled = loading || busy || !configured;
+  function changeMode(nextMode: "login" | "register") {
+    setMode(nextMode);
+    setPassword("");
+    setPasswordConfirm("");
+    setLocalError(null);
+  }
+
+  const disabled = loading || action !== null || !configured;
 
   return <main className="-mb-18 flex min-h-dvh flex-col overflow-hidden bg-[#fbfbfc] px-5 text-[#171719] md:mb-0">
     <header className="flex h-20 shrink-0 items-center justify-between sm:h-24 sm:px-1"><BrandLogo/><Link href="/" className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold text-[#6e6e73] hover:bg-black/5 hover:text-black"><ArrowLeft size={15}/>돌아가기</Link></header>
 
-    <section className="flex flex-1 items-center justify-center py-10 sm:-translate-y-5">
+    <section className="flex flex-1 items-center justify-center py-8 sm:-translate-y-3">
       <div className="page-enter w-full max-w-[380px]">
-        <div className="text-center"><p className="text-xs font-bold tracking-[.14em] text-[#007aff]">DONGPYEONGON</p><h1 className="mt-3 text-[28px] font-bold tracking-[-.04em] sm:text-[32px]">로그인 또는 회원가입</h1><p className="mt-2 text-sm leading-6 text-[#77777d]">학교 Google 계정 또는 이메일로 시작하세요.</p></div>
+        <div className="text-center"><p className="text-xs font-bold tracking-[.14em] text-[#007aff]">DONGPYEONGON</p><h1 className="mt-3 text-[28px] font-bold tracking-[-.04em] sm:text-[32px]">로그인 또는 회원가입</h1><p className="mt-2 text-sm leading-6 text-[#77777d]">인증된 학교 계정으로 동평ON을 시작하세요.</p></div>
 
-        <button type="button" disabled={disabled} onClick={() => void continueWithGoogle()} className="mt-8 flex h-13 w-full items-center justify-center gap-3 rounded-full border border-[#d7d7dc] bg-white text-sm font-semibold shadow-[0_1px_2px_rgba(0,0,0,.02)] hover:border-[#b8b8bf] hover:bg-[#f8f8f9] disabled:cursor-not-allowed disabled:opacity-50">{busy ? <LoaderCircle className="size-5 animate-spin"/> : <GoogleMark/>}학교 Google 계정으로 계속하기</button>
+        <button type="button" disabled={disabled} onClick={() => void continueWithGoogle()} className="mt-7 flex h-13 w-full items-center justify-center gap-3 rounded-full border border-[#d7d7dc] bg-white text-sm font-semibold shadow-[0_1px_2px_rgba(0,0,0,.02)] hover:border-[#b8b8bf] hover:bg-[#f8f8f9] disabled:cursor-not-allowed disabled:opacity-50">{action === "google" ? <LoaderCircle className="size-5 animate-spin"/> : <GoogleMark/>}학교 Google 계정으로 계속하기</button>
 
-        <div className="my-7 flex items-center gap-4 text-xs text-[#9a9aa0]"><span className="h-px flex-1 bg-[#e1e1e6]"/><span>또는</span><span className="h-px flex-1 bg-[#e1e1e6]"/></div>
+        <div className="my-5 flex items-center gap-4 text-xs text-[#9a9aa0]"><span className="h-px flex-1 bg-[#e1e1e6]"/><span>또는</span><span className="h-px flex-1 bg-[#e1e1e6]"/></div>
 
-        <form onSubmit={submit} className="space-y-3"><label className="sr-only" htmlFor="school-email">학교 이메일 주소</label><input id="school-email" type="email" value={email} onChange={(event) => { setEmail(event.target.value); setLocalError(null); }} required autoComplete="email" placeholder={`이메일 주소@${SCHOOL_EMAIL_DOMAIN}`} aria-describedby="school-email-help" aria-invalid={Boolean(localError)} className="h-13 w-full rounded-full border border-[#d7d7dc] bg-white px-5 text-sm outline-none placeholder:text-[#aaaab2] focus:border-[#007aff]/60 focus:shadow-[0_0_0_4px_rgba(0,122,255,.09)] aria-invalid:border-[#ff3b30]"/><p id="school-email-help" className="px-2 text-[11px] leading-4 text-[#8e8e93]">@{SCHOOL_EMAIL_DOMAIN} 학교 주소만 사용할 수 있어요.</p><button disabled={disabled} className="flex h-13 w-full items-center justify-center rounded-full bg-[#171719] text-sm font-bold text-white shadow-sm hover:scale-[1.01] hover:bg-black disabled:cursor-not-allowed disabled:opacity-45">{loading || busy ? <LoaderCircle className="size-5 animate-spin"/> : "인증 이메일 받기"}</button></form>
+        <div className="mb-4 grid grid-cols-2 rounded-full bg-[#eeeef0] p-1 text-xs font-semibold"><button type="button" onClick={() => changeMode("login")} className={`rounded-full py-2.5 ${mode === "login" ? "bg-white text-[#171719] shadow-sm" : "text-[#77777d]"}`}>로그인</button><button type="button" onClick={() => changeMode("register")} className={`rounded-full py-2.5 ${mode === "register" ? "bg-white text-[#171719] shadow-sm" : "text-[#77777d]"}`}>회원가입</button></div>
+
+        <form onSubmit={submit} className="space-y-3"><label className="sr-only" htmlFor="school-email">학교 이메일 주소</label><input id="school-email" type="email" value={email} onChange={(event) => { setEmail(event.target.value); setLocalError(null); }} required autoComplete="email" placeholder={`이메일 주소@${SCHOOL_EMAIL_DOMAIN}`} aria-describedby="school-email-help" aria-invalid={Boolean(localError)} className="h-13 w-full rounded-full border border-[#d7d7dc] bg-white px-5 text-sm outline-none placeholder:text-[#aaaab2] focus:border-[#007aff]/60 focus:shadow-[0_0_0_4px_rgba(0,122,255,.09)] aria-invalid:border-[#ff3b30]"/><div className="relative"><label className="sr-only" htmlFor="password">비밀번호</label><input id="password" type={showPassword ? "text" : "password"} value={password} onChange={(event) => { setPassword(event.target.value); setLocalError(null); }} required minLength={8} autoComplete={mode === "login" ? "current-password" : "new-password"} placeholder="비밀번호 8자 이상" className="h-13 w-full rounded-full border border-[#d7d7dc] bg-white px-5 pr-12 text-sm outline-none placeholder:text-[#aaaab2] focus:border-[#007aff]/60 focus:shadow-[0_0_0_4px_rgba(0,122,255,.09)]"/><button type="button" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? "비밀번호 숨기기" : "비밀번호 보기"} className="absolute right-2 top-1/2 grid size-9 -translate-y-1/2 place-items-center rounded-full text-[#8e8e93] hover:bg-black/5">{showPassword ? <EyeOff size={17}/> : <Eye size={17}/>}</button></div>{mode === "register" && <><label className="sr-only" htmlFor="password-confirm">비밀번호 확인</label><input id="password-confirm" type={showPassword ? "text" : "password"} value={passwordConfirm} onChange={(event) => { setPasswordConfirm(event.target.value); setLocalError(null); }} required minLength={8} autoComplete="new-password" placeholder="비밀번호 확인" className="h-13 w-full rounded-full border border-[#d7d7dc] bg-white px-5 text-sm outline-none placeholder:text-[#aaaab2] focus:border-[#007aff]/60 focus:shadow-[0_0_0_4px_rgba(0,122,255,.09)]"/></>}<p id="school-email-help" className="px-2 text-[11px] leading-4 text-[#8e8e93]">@{SCHOOL_EMAIL_DOMAIN} 학교 주소만 사용할 수 있어요.</p><button disabled={disabled} className="flex h-13 w-full items-center justify-center rounded-full bg-[#171719] text-sm font-bold text-white shadow-sm hover:scale-[1.01] hover:bg-black disabled:cursor-not-allowed disabled:opacity-45">{action === "email" || loading ? <LoaderCircle className="size-5 animate-spin"/> : mode === "register" ? "계정 만들기" : "이메일로 로그인"}</button></form>
 
         {!configured && <p className="mt-4 rounded-2xl bg-[#fff3cd] px-4 py-3 text-center text-xs leading-5 text-[#7a5a00]">Firebase 환경 변수를 설정하면 로그인을 사용할 수 있어요.</p>}
         {(localError || error) && <p role="alert" className="mt-4 rounded-2xl bg-[#fff0f0] px-4 py-3 text-center text-xs leading-5 text-[#c62828]">{localError || error}</p>}

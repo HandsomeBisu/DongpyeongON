@@ -1,2 +1,5 @@
-import { AdminUsers } from "@/components/admin/admin-users";
-export default function AdminPage() { return <AdminUsers />; }
+import { AdminHub } from "@/components/admin/admin-hub";
+
+export default function AdminPage() {
+  return <AdminHub />;
+}

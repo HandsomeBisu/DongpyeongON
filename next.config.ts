@@ -9,6 +9,11 @@ const nextConfig: NextConfig = {
         hostname: "assets.dpsteam.kr",
         pathname: "/dpon/**",
       },
+      {
+        protocol: "https",
+        hostname: "i.scdn.co",
+        pathname: "/image/**",
+      },
     ],
   },
 };

@@ -25,6 +25,11 @@ service cloud.firestore {
       return hasRole('teacher') || hasRole('admin');
     }
 
+    function hasCompletedProfile() {
+      return isSchoolAccount()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.onboardingCompleted == true;
+    }
+
     function validPost() {
       return request.resource.data.title is string
         && request.resource.data.title.size() >= 2
@@ -35,6 +40,18 @@ service cloud.firestore {
         && request.resource.data.category in ['학교생활', '정보공유', '질문', '자유이야기'];
     }
 
+    function validStudentProfile() {
+      return request.resource.data.name is string
+        && request.resource.data.name.size() >= 2
+        && request.resource.data.name.size() <= 20
+        && request.resource.data.grade in [1, 2, 3]
+        && request.resource.data.classNumber in [1, 2, 3, 4, 5, 6]
+        && request.resource.data.studentNumber is int
+        && request.resource.data.studentNumber >= 1
+        && request.resource.data.studentNumber <= 30
+        && request.resource.data.onboardingCompleted == true;
+    }
+
     match /users/{userId} {
       allow read: if isOwner(userId) || isStaff();
       allow create: if isOwner(userId)
@@ -42,20 +59,21 @@ service cloud.firestore {
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.email == request.auth.token.email;
       allow update: if isOwner(userId)
+        && validStudentProfile()
         && request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['displayName', 'photoURL', 'updatedAt']);
+          .hasOnly(['displayName', 'photoURL', 'name', 'grade', 'classNumber', 'studentNumber', 'onboardingCompleted', 'updatedAt']);
       allow delete: if hasRole('admin');
     }
 
     match /posts/{postId} {
-      allow read: if isSchoolAccount() && (resource.data.status == 'published' || isStaff());
-      allow create: if isSchoolAccount()
+      allow read: if hasCompletedProfile() && (resource.data.status == 'published' || isStaff());
+      allow create: if hasCompletedProfile()
         && validPost()
         && request.resource.data.authorId == request.auth.uid
         && request.resource.data.status == 'published'
         && request.resource.data.likeCount == 0
         && request.resource.data.commentCount == 0;
-      allow update: if isSchoolAccount() && validPost()
+      allow update: if hasCompletedProfile() && validPost()
         && request.resource.data.authorId == resource.data.authorId
         && request.resource.data.createdAt == resource.data.createdAt
         && ((resource.data.authorId == request.auth.uid
@@ -65,7 +83,7 @@ service cloud.firestore {
       allow delete: if hasRole('admin');
 
       match /comments/{commentId} {
-        allow read: if isSchoolAccount();
+        allow read: if hasCompletedProfile();
         allow write: if false;
       }
 
@@ -85,12 +103,8 @@ service cloud.firestore {
     }
 
     match /songRequests/{requestId} {
-      allow read: if isSchoolAccount();
-      allow create: if isSchoolAccount()
-        && request.resource.data.requestedBy == request.auth.uid
-        && request.resource.data.status == 'pending';
-      allow update: if isStaff();
-      allow delete: if hasRole('admin');
+      // Daily limits and moderation are enforced by authenticated server routes.
+      allow read, write: if false;
     }
   }
 }

@@ -7,6 +7,11 @@ export interface AppUser {
   displayName: string;
   email: string;
   role: UserRole;
+  name: string;
+  grade: number | null;
+  classNumber: number | null;
+  studentNumber: number | null;
+  onboardingCompleted: boolean;
   createdAt: Date;
 }
 
@@ -35,16 +40,4 @@ export interface Suggestion {
   answer?: string;
   createdAt: Date;
   answeredAt?: Date;
-}
-
-export interface SongRequest {
-  id: string;
-  spotifyTrackId: string;
-  trackName: string;
-  artistName: string;
-  albumImageUrl: string;
-  requestedBy: string;
-  message?: string;
-  status: "pending" | "approved" | "rejected" | "played";
-  createdAt: Date;
 }
