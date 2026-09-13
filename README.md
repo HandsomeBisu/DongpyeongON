@@ -12,6 +12,8 @@
 
 ## 로컬 실행
 
+Node.js 22 이상이 필요합니다. `firebase-admin`의 서버 런타임 요구사항 때문에 Vercel에서도 Node.js 22 이상을 사용해야 합니다.
+
 1. Firebase Authentication에서 Google 로그인과 이메일/비밀번호 로그인을 활성화합니다.
 2. `.env.example`을 `.env.local`로 복사하고 Firebase Admin SDK와 SMTP 값을 입력합니다.
 3. 아래 명령을 실행합니다.
