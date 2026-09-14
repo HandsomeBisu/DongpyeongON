@@ -1,2 +1,5 @@
-import { CommunityBoard } from "@/components/community/community-board";
-export default function CommunityPage() { return <CommunityBoard />; }
+import { redirect } from "next/navigation";
+
+export default function CommunityPage() {
+  redirect("/#community");
+}

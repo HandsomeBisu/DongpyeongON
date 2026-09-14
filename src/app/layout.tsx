@@ -12,11 +12,15 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default function RootLayout({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="ko">
       <body>
-        <AuthProvider><OnboardingGuard>{children}</OnboardingGuard></AuthProvider>
+        <AuthProvider>
+          <OnboardingGuard>{children}</OnboardingGuard>
+        </AuthProvider>
       </body>
     </html>
   );

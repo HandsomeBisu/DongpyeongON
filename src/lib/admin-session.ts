@@ -14,7 +14,7 @@ const passwordVariables: Record<AdminCategory, string> = {
 
 function sessionSecret() {
   const secret = process.env.ADMIN_SESSION_SECRET;
-  if (!secret || secret.length < 32) throw new Error("ADMIN_NOT_CONFIGURED");
+  if (!secret || secret.length < 32) throw new Error("ADMIN_SESSION_SECRET_NOT_CONFIGURED");
   return secret;
 }
 
@@ -34,7 +34,7 @@ function safeEqual(left: string, right: string) {
 
 export function verifyAdminPassword(category: AdminCategory, password: string) {
   const expected = process.env[passwordVariables[category]];
-  if (!expected) throw new Error("ADMIN_NOT_CONFIGURED");
+  if (!expected) throw new Error("ADMIN_PASSWORD_NOT_CONFIGURED");
   return safeEqual(password, expected);
 }
 

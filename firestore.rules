@@ -37,7 +37,7 @@ service cloud.firestore {
         && request.resource.data.content is string
         && request.resource.data.content.size() >= 5
         && request.resource.data.content.size() <= 5000
-        && request.resource.data.category in ['학교생활', '정보공유', '질문', '자유이야기'];
+        && request.resource.data.category in ['자유게시판', '질문게시판'];
     }
 
     function validStudentProfile() {
@@ -66,8 +66,30 @@ service cloud.firestore {
     }
 
     match /posts/{postId} {
-      // Community access is temporarily disabled. Trusted Admin SDK routes bypass these rules.
-      allow read, write: if false;
+      allow read: if hasCompletedProfile() && resource.data.status == 'published';
+      allow create: if hasCompletedProfile()
+        && validPost()
+        && request.resource.data.keys().hasOnly([
+          'title', 'content', 'category', 'authorId', 'authorNickname',
+          'status', 'likeCount', 'commentCount', 'createdAt', 'updatedAt'
+        ])
+        && request.resource.data.authorId == request.auth.uid
+        && request.resource.data.authorNickname is string
+        && request.resource.data.authorNickname.size() >= 2
+        && request.resource.data.authorNickname.size() <= 20
+        && request.resource.data.status == 'published'
+        && request.resource.data.likeCount == 0
+        && request.resource.data.commentCount == 0
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+      allow update: if hasCompletedProfile()
+        && resource.data.authorId == request.auth.uid
+        && request.resource.data.authorId == resource.data.authorId
+        && validPost()
+        && request.resource.data.status in ['published', 'deleted']
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['title', 'content', 'category', 'status', 'updatedAt']);
+      allow delete: if false;
 
       match /comments/{commentId} {
         allow read: if hasCompletedProfile();

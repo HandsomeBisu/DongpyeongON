@@ -1,7 +1,21 @@
 "use client";
 
-import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
-import { Bold, Code2, Eye, Italic, Link2, PenLine, Strikethrough, Underline } from "lucide-react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type MouseEvent as ReactMouseEvent,
+} from "react";
+import {
+  Bold,
+  Code2,
+  Eye,
+  Italic,
+  Link2,
+  PenLine,
+  Strikethrough,
+  Underline,
+} from "lucide-react";
 import { MarkdownContent } from "@/components/community/markdown-content";
 
 type Selection = {
@@ -26,7 +40,12 @@ const formats = [
   { label: "인라인 코드", icon: Code2, before: "`", after: "`" },
 ] as const;
 
-export function MarkdownEditor({ name, defaultValue = "", placeholder, rows = 10 }: MarkdownEditorProps) {
+export function MarkdownEditor({
+  name,
+  defaultValue = "",
+  placeholder,
+  rows = 10,
+}: MarkdownEditorProps) {
   const [value, setValue] = useState(defaultValue);
   const [preview, setPreview] = useState(false);
   const [selection, setSelection] = useState<Selection | null>(null);
@@ -49,20 +68,29 @@ export function MarkdownEditor({ name, defaultValue = "", placeholder, rows = 10
     requestAnimationFrame(() => {
       const editor = editorRef.current;
       const container = containerRef.current;
-      if (!editor || !container || editor.selectionStart === editor.selectionEnd) {
+      if (
+        !editor ||
+        !container ||
+        editor.selectionStart === editor.selectionEnd
+      ) {
         setSelection(null);
         return;
       }
 
       const bounds = container.getBoundingClientRect();
-      const left = clientX === undefined
-        ? bounds.width / 2
-        : Math.min(Math.max(clientX - bounds.left, 130), bounds.width - 130);
-      const top = clientY === undefined
-        ? 12
-        : Math.max(clientY - bounds.top - 52, 12);
+      const left =
+        clientX === undefined
+          ? bounds.width / 2
+          : Math.min(Math.max(clientX - bounds.left, 130), bounds.width - 130);
+      const top =
+        clientY === undefined ? 12 : Math.max(clientY - bounds.top - 52, 12);
 
-      setSelection({ start: editor.selectionStart, end: editor.selectionEnd, left, top });
+      setSelection({
+        start: editor.selectionStart,
+        end: editor.selectionEnd,
+        left,
+        top,
+      });
     });
   }
 
@@ -80,7 +108,10 @@ export function MarkdownEditor({ name, defaultValue = "", placeholder, rows = 10
     setSelection(null);
     requestAnimationFrame(() => {
       editorRef.current?.focus();
-      editorRef.current?.setSelectionRange(nextStart, nextStart + selectedText.length);
+      editorRef.current?.setSelectionRange(
+        nextStart,
+        nextStart + selectedText.length,
+      );
     });
   }
 
@@ -101,11 +132,13 @@ export function MarkdownEditor({ name, defaultValue = "", placeholder, rows = 10
 
   return (
     <div className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[#f5f5f7] focus-within:border-[#007aff] focus-within:ring-4 focus-within:ring-blue-500/10">
-      <div className="flex items-center justify-between border-b border-[var(--border)] bg-white/75 px-3 py-2">
-        <span className="text-xs font-medium text-[var(--muted)]">Markdown 지원</span>
+      <div className="flex justify-end bg-white/75 px-3 py-2">
         <button
           type="button"
-          onClick={() => { setPreview((current) => !current); setSelection(null); }}
+          onClick={() => {
+            setPreview((current) => !current);
+            setSelection(null);
+          }}
           className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-[var(--muted)] hover:bg-[var(--hover)] hover:text-[var(--foreground)]"
         >
           {preview ? <PenLine size={14} /> : <Eye size={14} />}
@@ -116,7 +149,13 @@ export function MarkdownEditor({ name, defaultValue = "", placeholder, rows = 10
       <div ref={containerRef} className="relative">
         {preview ? (
           <div className="min-h-64 bg-white p-4 sm:p-5">
-            {value.trim() ? <MarkdownContent content={value} /> : <p className="text-sm text-[var(--muted)]">미리 볼 내용이 없어요.</p>}
+            {value.trim() ? (
+              <MarkdownContent content={value} />
+            ) : (
+              <p className="text-sm text-[var(--muted)]">
+                미리 볼 내용이 없어요.
+              </p>
+            )}
             <textarea name={name} value={value} readOnly hidden />
           </div>
         ) : (
@@ -124,11 +163,23 @@ export function MarkdownEditor({ name, defaultValue = "", placeholder, rows = 10
             ref={editorRef}
             name={name}
             value={value}
-            onChange={(event) => { setValue(event.target.value); setSelection(null); }}
+            onChange={(event) => {
+              setValue(event.target.value);
+              setSelection(null);
+            }}
             onMouseUp={handleMouseUp}
-            onKeyUp={(event) => { if (event.shiftKey) showSelection(); }}
+            onKeyUp={(event) => {
+              if (event.shiftKey) showSelection();
+            }}
             onTouchEnd={() => showSelection()}
-            onBlur={(event) => { if (!event.currentTarget.parentElement?.contains(event.relatedTarget)) setSelection(null); }}
+            onBlur={(event) => {
+              if (
+                !event.currentTarget.parentElement?.contains(
+                  event.relatedTarget,
+                )
+              )
+                setSelection(null);
+            }}
             required
             minLength={5}
             maxLength={5000}
@@ -171,12 +222,6 @@ export function MarkdownEditor({ name, defaultValue = "", placeholder, rows = 10
           </div>
         )}
       </div>
-
-      {!preview && (
-        <div className="border-t border-[var(--border)] bg-white/55 px-4 py-2 text-[11px] text-[var(--muted)]">
-          글자를 드래그하면 굵게, 기울임, 밑줄 등의 서식을 적용할 수 있어요.
-        </div>
-      )}
     </div>
   );
 }
