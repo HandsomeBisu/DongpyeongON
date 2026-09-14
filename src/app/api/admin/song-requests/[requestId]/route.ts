@@ -14,7 +14,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ re
     const { requestId } = await params;
     const reference = getAdminDb().collection("songRequests").doc(requestId);
     if (!(await reference.get()).exists) return Response.json({ error: "신청 내역을 찾을 수 없습니다." }, { status: 404 });
-    await reference.update({ status: parsed.data.status, updatedAt: FieldValue.serverTimestamp() });
+    const changedAt = FieldValue.serverTimestamp();
+    const statusTimestamp = { approved: "approvedAt", rejected: "rejectedAt", played: "playedAt", pending: "reviewedAgainAt" }[parsed.data.status];
+    await reference.update({ status: parsed.data.status, updatedAt: changedAt, [statusTimestamp]: changedAt });
     return Response.json({ ok: true });
   } catch (error) {
     return apiError(error);

@@ -22,5 +22,8 @@ export type SongRequestRecord = Omit<SpotifyTrack, "id"> & {
   windowKey: string;
   createdAt: string | null;
   updatedAt: string | null;
+  approvedAt?: string | null;
+  rejectedAt?: string | null;
+  playedAt?: string | null;
   limitResetsAt: string;
 };

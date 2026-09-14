@@ -7,7 +7,7 @@
 - Next.js App Router + TypeScript
 - Tailwind CSS
 - Firebase Authentication, Firestore, Storage, Admin SDK
-- Spotify Web API
+- Spotify Web API + Web Playback SDK
 - Vercel
 
 ## 로컬 실행
@@ -43,6 +43,7 @@ SMTP_FROM=
 EMAIL_VERIFICATION_SECRET=
 SPOTIFY_CLIENT_ID=
 SPOTIFY_CLIENT_SECRET=
+SPOTIFY_REDIRECT_URI=
 ADMIN_USERS_PASSWORD=
 ADMIN_MUSIC_PASSWORD=
 ADMIN_COMMUNITY_PASSWORD=
@@ -53,7 +54,7 @@ ADMIN_SESSION_SECRET=
 
 `ADMIN_SESSION_SECRET`은 관리자 영역 세션 쿠키 서명에 사용되며 32자 이상의 무작위 값으로 설정합니다. 관리자 영역 비밀번호는 브라우저 번들이나 저장소에 포함되지 않습니다.
 
-Spotify 검색과 신청 API는 Firebase 학교 계정 인증을 다시 검증합니다. 신청 한도는 한국 시간 오전 7시부터 다음 날 오전 7시까지 사용자당 한 곡이며, 서버에서 중복 문서 생성을 차단합니다.
+Spotify 검색과 신청 API는 Firebase 학교 계정 인증을 다시 검증합니다. 신청 한도는 한국 시간 오전 7시부터 다음 날 오전 7시까지 사용자당 한 곡이며, 서버에서 중복 문서 생성을 차단합니다. 관리자 웹 플레이어를 사용하려면 Spotify Developer Dashboard에 `SPOTIFY_REDIRECT_URI`를 Redirect URI로 정확히 등록하고 Spotify Premium 계정을 연결해야 합니다. 운영 환경의 예시는 `https://dpon.dpsteam.kr/api/admin/spotify/callback`입니다.
 
 ## Firebase 규칙과 인덱스 배포
 
@@ -72,11 +73,8 @@ pnpm build
 ## 보안 주의사항
 
 - Firebase Web SDK 설정값은 공개 식별 정보이며, Admin SDK 비공개 키는 서버 환경 변수로만 관리합니다.
-- 관리자 역할은 Firebase Auth Custom Claims로 부여합니다.
-- 관리자 도구는 Custom Claim 확인 후 영역별 환경 변수 비밀번호를 추가로 검증합니다.
+- 관리자 도구는 영역별 환경 변수 비밀번호와 서버에서 서명한 HttpOnly 세션 쿠키로 보호합니다.
 - 신문고 조회/저장은 Firebase Admin SDK를 사용하는 서버 Route Handler를 통합니다.
 - Firestore와 Storage Rules는 배포 전 Emulator 테스트를 추가해야 합니다.
 
-최초 관리자 계정에는 Firebase Admin SDK로 Authentication Custom Claim
-`role: "admin"`을 한 번 부여해야 합니다. 이후에는 `/admin`에서 학생·교사·관리자
-역할을 변경할 수 있으며, 변경된 사용자는 다시 로그인해야 새 권한이 적용됩니다.
+`/admin` 접근에는 Firebase 관리자 역할이 필요하지 않으며 각 관리 영역의 전용 비밀번호를 사용합니다. 사용자 관리에서 역할을 변경한 경우 대상 사용자는 다시 로그인해야 새 권한이 적용됩니다.
