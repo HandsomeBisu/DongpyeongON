@@ -71,7 +71,7 @@ export function VerifyEmailPanel() {
   const verifying = state === "verifying";
 
   return (
-    <main className="flex min-h-dvh flex-col bg-[#fbfbfc] px-5 text-[#171719]">
+    <main className="flex min-h-[calc(100dvh-112px)] flex-col bg-[#fbfbfc] px-5 text-[#171719]">
       <header className="flex h-20 shrink-0 items-center justify-between sm:h-24 sm:px-1">
         <BrandLogo />
         <Link
@@ -197,9 +197,6 @@ export function VerifyEmailPanel() {
           )}
         </div>
       </section>
-      <footer className="shrink-0 pb-8 text-center text-[11px] text-[#b0b0b6]">
-        @{SCHOOL_EMAIL_DOMAIN} 학교 계정 전용
-      </footer>
     </main>
   );
 }

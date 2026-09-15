@@ -116,7 +116,7 @@ export function LoginPanel() {
   const disabled = loading || action !== null || !configured;
 
   return (
-    <main className="flex min-h-dvh flex-col overflow-hidden bg-[#fbfbfc] px-5 text-[#171719]">
+    <main className="flex min-h-[calc(100dvh-112px)] flex-col overflow-hidden bg-[#fbfbfc] px-5 text-[#171719]">
       <header className="flex h-20 shrink-0 items-center justify-between sm:h-24 sm:px-1">
         <BrandLogo />
         <Link
@@ -284,23 +284,25 @@ export function LoginPanel() {
           <p className="mx-auto mt-6 max-w-[350px] text-center text-[11px] leading-5 text-[#8e8e93]">
             <span className="block sm:inline">계속 진행하면 </span>
             <span className="whitespace-nowrap">
-              <span className="font-semibold text-[#55555a]">이용약관</span> 및{" "}
-              <span className="font-semibold text-[#55555a]">
+              <Link
+                href="/terms"
+                className="font-semibold text-[#55555a] underline decoration-black/20 underline-offset-2 hover:text-[#007aff]"
+              >
+                이용약관
+              </Link>{" "}
+              및{" "}
+              <Link
+                href="/privacy"
+                className="font-semibold text-[#55555a] underline decoration-black/20 underline-offset-2 hover:text-[#007aff]"
+              >
                 개인정보 보호 정책
-              </span>
+              </Link>
               에
             </span>{" "}
             <span className="whitespace-nowrap">동의하는 것입니다.</span>
           </p>
         </div>
       </section>
-
-      <footer className="flex shrink-0 flex-col items-center pb-7 text-center sm:pb-8">
-        <span className="text-xs font-semibold text-[#b0b0b6]">
-          DongpyeongON
-        </span>
-        <p className="mt-1 text-[10px] text-[#bebec4]">동평중학교 커뮤니티</p>
-      </footer>
     </main>
   );
 }
