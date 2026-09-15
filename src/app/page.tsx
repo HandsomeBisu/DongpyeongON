@@ -2,21 +2,34 @@
 
 import Link from "next/link";
 import {
+  Activity,
   Bell,
   Clock3,
+  Flame,
   Home,
   Inbox,
   LogIn,
   Megaphone,
   MessageCircle,
   Music2,
+  Plus,
   Radio,
   Search,
   Utensils,
 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { AnnouncementBanner } from "@/components/announcements/announcement-banner";
 import { AuthButton } from "@/components/auth/auth-button";
+import { useAuth } from "@/components/auth/auth-provider";
 import { BrandLogo } from "@/components/brand-logo";
-import { HomeCommunity } from "@/components/community/home-community";
+import { markdownToPlainText } from "@/lib/markdown";
+import {
+  formatPostDate,
+  subscribeToPosts,
+  type CommunityPost,
+} from "@/lib/posts";
+
+const ranges = ["1시간", "1일", "7일", "30일"];
 
 const mobileLinks = [
   { href: "/", label: "홈", icon: Home },
@@ -26,6 +39,58 @@ const mobileLinks = [
 ];
 
 export default function HomePage() {
+  const [range, setRange] = useState("1시간");
+  const [openedAt] = useState(() => Date.now());
+  const { user, loading, configured } = useAuth();
+  const [posts, setPosts] = useState<CommunityPost[]>([]);
+  const [postsLoaded, setPostsLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!configured || !user) return;
+    return subscribeToPosts(
+      (items) => {
+        setPosts(items);
+        setPostsLoaded(true);
+      },
+      () => setPostsLoaded(true),
+    );
+  }, [configured, user]);
+
+  const latestPosts = posts.slice(0, 5);
+  const realtimePosts = [...posts]
+    .sort(
+      (left, right) =>
+        right.likeCount * 2 +
+        right.commentCount -
+        (left.likeCount * 2 + left.commentCount),
+    )
+    .slice(0, 3);
+  const rangeHours: Record<string, number> = {
+    "1시간": 1,
+    "1일": 24,
+    "7일": 24 * 7,
+    "30일": 24 * 30,
+  };
+  const cutoff = openedAt - rangeHours[range] * 60 * 60 * 1000;
+  const hotPosts = [...posts]
+    .filter((post) => !post.createdAt || post.createdAt.toMillis() >= cutoff)
+    .sort(
+      (left, right) =>
+        right.likeCount * 2 +
+        right.commentCount -
+        (left.likeCount * 2 + left.commentCount),
+    )
+    .slice(0, 5);
+  const councilPosts = posts
+    .filter((post) => post.category === "학생회 공지")
+    .slice(0, 3);
+  const loadingMessage = !configured
+    ? "커뮤니티 연결 정보를 확인해 주세요."
+    : loading || (user && !postsLoaded)
+      ? "게시물을 불러오고 있어요."
+      : !user
+        ? "로그인하면 게시물을 확인할 수 있어요."
+        : "등록된 게시물이 없어요.";
   return (
     <div className="min-h-screen bg-[#f5f5f7]">
       <header className="glass-bar sticky top-0 z-40">
@@ -69,10 +134,70 @@ export default function HomePage() {
         </div>
       </header>
 
-      <main className="page-enter mx-auto grid max-w-6xl gap-8 px-5 py-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start lg:py-10">
-        <HomeCommunity />
+      <AnnouncementBanner />
 
-        <aside className="space-y-6 lg:sticky lg:top-[98px]">
+      <main className="page-enter mx-auto grid max-w-6xl gap-8 px-5 py-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start lg:py-10">
+        <div className="space-y-10">
+          <DashboardSection icon={<Activity size={25} />} title="실시간 인기글">
+            <PostPanel
+              posts={realtimePosts}
+              emptyText={loadingMessage}
+              className="min-h-[190px]"
+            />
+          </DashboardSection>
+
+          <DashboardSection
+            icon={<Flame size={24} />}
+            title="HOT 게시글"
+            trailing={
+              <div className="flex rounded-xl bg-[#e9e9ed] p-1">
+                {ranges.map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => setRange(item)}
+                    className={`rounded-[9px] px-3 py-1.5 text-xs font-medium ${range === item ? "bg-white text-[var(--foreground)] shadow-sm" : "text-[var(--muted)] hover:text-[var(--foreground)]"}`}
+                  >
+                    {item}
+                  </button>
+                ))}
+              </div>
+            }
+          >
+            <PostPanel
+              posts={hotPosts}
+              emptyText={
+                posts.length
+                  ? `${range} 동안 인기 게시글이 없어요.`
+                  : loadingMessage
+              }
+              className="min-h-[260px]"
+            />
+          </DashboardSection>
+
+          <DashboardSection
+            icon={<Clock3 size={24} />}
+            title="최신 게시글"
+            trailing={
+              <Link
+                href="/#community"
+                className="text-sm font-medium text-[#007aff]"
+              >
+                전체 보기
+              </Link>
+            }
+          >
+            <div id="community" className="scroll-mt-28">
+              <PostPanel
+                posts={latestPosts}
+                emptyText={loadingMessage}
+                className="min-h-[180px]"
+              />
+            </div>
+          </DashboardSection>
+        </div>
+
+        <aside className="space-y-6 lg:sticky lg:top-[130px]">
           <SideCard
             icon={<Utensils size={22} />}
             title="오늘의 급식"
@@ -103,12 +228,39 @@ export default function HomePage() {
             </div>
           </SideCard>
           <SideCard icon={<Megaphone size={22} />} title="학교/학생회 공지">
-            <div className="grid min-h-[130px] place-items-center rounded-2xl bg-[#f5f5f7] p-5 text-center text-sm text-[var(--muted)]">
-              등록된 공지사항이 없어요.
-            </div>
+            {councilPosts.length ? (
+              <div className="divide-y divide-black/5 overflow-hidden rounded-2xl bg-[#f5f5f7]">
+                {councilPosts.map((post) => (
+                  <Link
+                    key={post.id}
+                    href={`/post/${post.id}`}
+                    className="block px-4 py-3.5 hover:bg-black/[.03]"
+                  >
+                    <strong className="block truncate text-sm">
+                      {post.title}
+                    </strong>
+                    <span className="mt-1 block text-xs text-[var(--muted)]">
+                      {formatPostDate(post.createdAt)}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="grid min-h-[130px] place-items-center rounded-2xl bg-[#f5f5f7] p-5 text-center text-sm text-[var(--muted)]">
+                {loadingMessage}
+              </div>
+            )}
           </SideCard>
         </aside>
       </main>
+
+      <Link
+        href="/post/new"
+        aria-label="새 게시물 작성"
+        className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-5 z-[60] grid size-14 place-items-center rounded-full bg-[#007aff] text-white shadow-xl shadow-blue-500/30 transition hover:scale-105 hover:bg-[#0674df] md:bottom-7 md:right-7"
+      >
+        <Plus size={27} strokeWidth={2.5} />
+      </Link>
 
       <nav
         aria-label="모바일 메뉴"
@@ -125,6 +277,112 @@ export default function HomePage() {
           </Link>
         ))}
       </nav>
+    </div>
+  );
+}
+
+function DashboardSection({
+  icon,
+  title,
+  trailing,
+  children,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  trailing?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <section>
+      <div className="mb-4 flex min-h-10 flex-wrap items-center gap-2">
+        <span>{icon}</span>
+        <h2 className="text-2xl font-bold tracking-[-0.03em]">{title}</h2>
+        {trailing && (
+          <div className="ml-auto max-w-full overflow-x-auto">{trailing}</div>
+        )}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function EmptyPanel({
+  text,
+  action,
+  href,
+  className = "",
+}: {
+  text: string;
+  action?: string;
+  href?: string;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`ios-card grid place-items-center p-8 text-center ${className}`}
+    >
+      <div>
+        <p className="text-sm text-[var(--muted)]">{text}</p>
+        {action && href && (
+          <Link
+            href={href}
+            className="mt-3 inline-block text-sm font-semibold text-[#007aff] hover:opacity-70"
+          >
+            {action} →
+          </Link>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PostPanel({
+  posts,
+  emptyText,
+  className = "",
+}: {
+  posts: CommunityPost[];
+  emptyText: string;
+  className?: string;
+}) {
+  if (!posts.length)
+    return (
+      <EmptyPanel
+        className={className}
+        text={emptyText}
+        action="게시물 작성하기"
+        href="/post/new"
+      />
+    );
+  return (
+    <div
+      className={`ios-card divide-y divide-[var(--border)] overflow-hidden ${className}`}
+    >
+      {posts.map((post) => (
+        <Link
+          key={post.id}
+          href={`/post/${post.id}`}
+          className="group block px-5 py-4 hover:bg-[#f8f8fa] sm:px-6"
+        >
+          <div className="flex items-center gap-2 text-xs text-[var(--muted)]">
+            <span className="rounded-full bg-[#f2f2f7] px-2 py-1 font-semibold">
+              {post.category}
+            </span>
+            <span>{post.authorNickname}</span>
+            <span>·</span>
+            <time>{formatPostDate(post.createdAt)}</time>
+          </div>
+          <h3 className="mt-2 truncate font-bold group-hover:text-[#007aff]">
+            {post.title}
+          </h3>
+          <p className="mt-1 line-clamp-1 text-sm text-[var(--muted)]">
+            {markdownToPlainText(post.content)}
+          </p>
+          <p className="mt-2 text-xs text-[var(--muted)]">
+            좋아요 {post.likeCount} · 댓글 {post.commentCount}
+          </p>
+        </Link>
+      ))}
     </div>
   );
 }

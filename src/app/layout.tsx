@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { AuthProvider } from "@/components/auth/auth-provider";
 import { OnboardingGuard } from "@/components/auth/onboarding-guard";
+import { AnnouncementPopup } from "@/components/announcements/announcement-popup";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -20,6 +21,7 @@ export default function RootLayout({
       <body>
         <AuthProvider>
           <OnboardingGuard>{children}</OnboardingGuard>
+          <AnnouncementPopup />
         </AuthProvider>
       </body>
     </html>

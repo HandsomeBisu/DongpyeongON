@@ -98,8 +98,8 @@ export function AdminUsers() {
                       }
                       className="h-11 min-w-28 rounded-xl border border-[var(--border)] bg-[#f5f5f7] px-3 text-sm"
                     >
-                      <option value="student">학생</option>
-                      <option value="teacher">교사</option>
+                      <option value="general">일반</option>
+                      <option value="student_council">학생회</option>
                       <option value="admin">관리자</option>
                     </select>
                   </label>
@@ -136,8 +136,8 @@ export function AdminUsers() {
                           }
                           className="rounded-xl border border-[var(--border)] bg-[#f5f5f7] p-2 text-sm"
                         >
-                          <option value="student">학생</option>
-                          <option value="teacher">교사</option>
+                          <option value="general">일반</option>
+                          <option value="student_council">학생회</option>
                           <option value="admin">관리자</option>
                         </select>
                       </td>
@@ -159,15 +159,15 @@ export function AdminUsers() {
             </div>
             <div className="mt-4 space-y-4 text-sm">
               <div>
-                <strong>학생</strong>
+                <strong>일반</strong>
                 <p className="mt-1 text-[var(--muted)]">
                   게시물과 신청 기능을 이용합니다.
                 </p>
               </div>
               <div>
-                <strong>교사</strong>
+                <strong>학생회</strong>
                 <p className="mt-1 text-[var(--muted)]">
-                  콘텐츠와 신문고를 관리합니다.
+                  학생회 공지를 작성하고 일반 기능을 이용합니다.
                 </p>
               </div>
               <div>

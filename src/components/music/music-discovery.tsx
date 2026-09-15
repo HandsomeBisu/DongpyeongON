@@ -15,7 +15,7 @@ import {
   UserRound,
   X,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { authenticatedFetch } from "@/lib/authenticated-fetch";
 import type { SongRequestRecord, SpotifyTrack } from "@/types/spotify";
@@ -34,8 +34,11 @@ export function MusicDiscovery() {
   const { user, profile } = useAuth();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SpotifyTrack[]>([]);
-  const [visibleCount, setVisibleCount] = useState(SEARCH_PAGE_SIZE);
+  const [hasMoreResults, setHasMoreResults] = useState(false);
+  const [nextOffset, setNextOffset] = useState(0);
+  const [totalResults, setTotalResults] = useState(0);
   const [searching, setSearching] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [requesting, setRequesting] = useState("");
   const [confirmationTrack, setConfirmationTrack] =
     useState<SpotifyTrack | null>(null);
@@ -46,6 +49,7 @@ export function MusicDiscovery() {
     limitResetsAt: string;
   } | null>(null);
   const [message, setMessage] = useState("");
+  const latestQuery = useRef("");
   const todayRequest =
     requestState && requestState.uid === user?.uid
       ? requestState.request
@@ -95,17 +99,27 @@ export function MusicDiscovery() {
         );
         const data = (await response.json()) as {
           tracks?: SpotifyTrack[];
+          hasMore?: boolean;
+          nextOffset?: number;
+          total?: number;
           error?: string;
           retryAfter?: number;
         };
+        if (latestQuery.current !== trimmed) return;
         if (!response.ok) {
           setResults([]);
+          setHasMoreResults(false);
+          setNextOffset(0);
+          setTotalResults(0);
           setMessage(
             `${data.error ?? "노래를 검색하지 못했어요."}${data.retryAfter ? ` ${data.retryAfter}초 후 다시 시도해 주세요.` : ""}`,
           );
           return;
         }
         setResults(data.tracks ?? []);
+        setHasMoreResults(data.hasMore === true);
+        setNextOffset(data.nextOffset ?? data.tracks?.length ?? 0);
+        setTotalResults(data.total ?? data.tracks?.length ?? 0);
       } catch (error) {
         if (!(error instanceof DOMException && error.name === "AbortError"))
           setMessage("검색 중 연결 문제가 발생했어요.");
@@ -118,6 +132,49 @@ export function MusicDiscovery() {
       controller.abort();
     };
   }, [query, user]);
+
+  async function loadMoreResults() {
+    const trimmed = query.trim();
+    if (!user || trimmed.length < 2 || !hasMoreResults || loadingMore) return;
+    setLoadingMore(true);
+    setMessage("");
+    try {
+      const response = await authenticatedFetch(
+        user,
+        `/api/spotify/search?q=${encodeURIComponent(trimmed)}&offset=${nextOffset}`,
+      );
+      const data = (await response.json()) as {
+        tracks?: SpotifyTrack[];
+        hasMore?: boolean;
+        nextOffset?: number;
+        total?: number;
+        error?: string;
+        retryAfter?: number;
+      };
+      if (latestQuery.current !== trimmed) return;
+      if (!response.ok) {
+        setMessage(
+          `${data.error ?? "검색 결과를 더 불러오지 못했어요."}${data.retryAfter ? ` ${data.retryAfter}초 후 다시 시도해 주세요.` : ""}`,
+        );
+        return;
+      }
+      setResults((current) => {
+        const knownIds = new Set(current.map((track) => track.id));
+        return [
+          ...current,
+          ...(data.tracks ?? []).filter((track) => !knownIds.has(track.id)),
+        ];
+      });
+      setHasMoreResults(data.hasMore === true);
+      setNextOffset(data.nextOffset ?? nextOffset + SEARCH_PAGE_SIZE);
+      setTotalResults(data.total ?? totalResults);
+    } catch {
+      if (latestQuery.current === trimmed)
+        setMessage("검색 결과를 더 불러오는 중 연결 문제가 발생했어요.");
+    } finally {
+      if (latestQuery.current === trimmed) setLoadingMore(false);
+    }
+  }
 
   useEffect(() => {
     if (!confirmationTrack) return;
@@ -217,9 +274,13 @@ export function MusicDiscovery() {
               onChange={(event) => {
                 const value = event.target.value;
                 setQuery(value);
-                setVisibleCount(SEARCH_PAGE_SIZE);
+                latestQuery.current = value.trim();
+                setResults([]);
+                setHasMoreResults(false);
+                setNextOffset(0);
+                setTotalResults(0);
+                setLoadingMore(false);
                 if (value.trim().length < 2) {
-                  setResults([]);
                   setSearching(false);
                   setMessage("");
                 }
@@ -344,7 +405,7 @@ export function MusicDiscovery() {
               </div>
               {results.length > 0 && (
                 <span className="text-xs text-[#8f8f8f]">
-                  {Math.min(visibleCount, results.length)} / {results.length}곡
+                  {results.length} / {Math.max(totalResults, results.length)}곡
                 </span>
               )}
             </div>
@@ -375,7 +436,7 @@ export function MusicDiscovery() {
                 </div>
               ) : results.length ? (
                 <div className="space-y-1">
-                  {results.slice(0, visibleCount).map((track, index) => {
+                  {results.map((track, index) => {
                     const requestedThis =
                       todayRequest?.spotifyTrackId === track.id;
                     const alreadyRequested = requestedTrackIds.has(track.id);
@@ -483,23 +544,22 @@ export function MusicDiscovery() {
                       </article>
                     );
                   })}
-                  {visibleCount < results.length && (
+                  {hasMoreResults && (
                     <div className="pt-5 text-center">
                       <button
                         type="button"
-                        onClick={() =>
-                          setVisibleCount((count) =>
-                            Math.min(count + SEARCH_PAGE_SIZE, results.length),
-                          )
-                        }
-                        className="rounded-full border border-white/20 bg-white/8 px-6 py-2.5 text-sm font-bold text-white transition hover:scale-[1.02] hover:border-white/35 hover:bg-white/12"
+                        disabled={loadingMore}
+                        onClick={() => void loadMoreResults()}
+                        className="rounded-full border border-white/20 bg-white/8 px-6 py-2.5 text-sm font-bold text-white transition hover:scale-[1.02] hover:border-white/35 hover:bg-white/12 disabled:cursor-not-allowed disabled:opacity-55"
                       >
-                        검색 결과{" "}
-                        {Math.min(
-                          SEARCH_PAGE_SIZE,
-                          results.length - visibleCount,
+                        {loadingMore ? (
+                          <span className="inline-flex items-center gap-2">
+                            <LoaderCircle size={16} className="animate-spin" />
+                            불러오는 중
+                          </span>
+                        ) : (
+                          `검색 결과 ${Math.min(SEARCH_PAGE_SIZE, Math.max(totalResults - results.length, 1))}개 더 보기`
                         )}
-                        개 더 보기
                       </button>
                     </div>
                   )}

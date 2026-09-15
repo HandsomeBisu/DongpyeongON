@@ -1,4 +1,12 @@
-export type UserRole = "student" | "teacher" | "admin";
+export const USER_ROLES = ["general", "student_council", "admin"] as const;
+export type UserRole = (typeof USER_ROLES)[number];
+
+export function normalizeUserRole(value: unknown): UserRole {
+  if (value === "admin") return "admin";
+  if (value === "student_council" || value === "teacher")
+    return "student_council";
+  return "general";
+}
 
 export type ContentStatus = "published" | "hidden" | "deleted";
 

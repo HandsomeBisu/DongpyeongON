@@ -1,7 +1,12 @@
 import { z } from "zod";
+import { normalizeUserRole, type UserRole } from "@/types/domain";
 
 export const studentProfileSchema = z.object({
-  name: z.string().trim().min(2, "이름은 2자 이상 입력해 주세요.").max(20, "이름은 20자 이하로 입력해 주세요."),
+  name: z
+    .string()
+    .trim()
+    .min(2, "이름은 2자 이상 입력해 주세요.")
+    .max(20, "이름은 20자 이하로 입력해 주세요."),
   grade: z.number().int().min(1).max(3),
   classNumber: z.number().int().min(1).max(6),
   studentNumber: z.number().int().min(1).max(30),
@@ -14,7 +19,7 @@ export type UserProfile = {
   email: string;
   displayName: string;
   photoURL: string | null;
-  role: "student" | "teacher" | "admin";
+  role: UserRole;
   name: string;
   grade: number | null;
   classNumber: number | null;
@@ -23,7 +28,12 @@ export type UserProfile = {
 };
 
 export function profileFromData(
-  fallback: { uid: string; email: string | null; displayName: string | null; photoURL: string | null },
+  fallback: {
+    uid: string;
+    email: string | null;
+    displayName: string | null;
+    photoURL: string | null;
+  },
   data: Record<string, unknown>,
 ): UserProfile {
   const parsed = studentProfileSchema.safeParse({
@@ -32,14 +42,18 @@ export function profileFromData(
     classNumber: data.classNumber,
     studentNumber: data.studentNumber,
   });
-  const role = data.role === "teacher" || data.role === "admin" ? data.role : "student";
-  const displayName = typeof data.displayName === "string" ? data.displayName : fallback.displayName || "동평 학생";
+  const role = normalizeUserRole(data.role);
+  const displayName =
+    typeof data.displayName === "string"
+      ? data.displayName
+      : fallback.displayName || "동평 학생";
 
   return {
     uid: fallback.uid,
     email: typeof data.email === "string" ? data.email : fallback.email || "",
     displayName,
-    photoURL: typeof data.photoURL === "string" ? data.photoURL : fallback.photoURL,
+    photoURL:
+      typeof data.photoURL === "string" ? data.photoURL : fallback.photoURL,
     role,
     name: parsed.success ? parsed.data.name : displayName,
     grade: parsed.success ? parsed.data.grade : null,

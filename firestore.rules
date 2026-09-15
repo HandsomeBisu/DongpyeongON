@@ -22,7 +22,7 @@ service cloud.firestore {
     }
 
     function isStaff() {
-      return hasRole('teacher') || hasRole('admin');
+      return hasRole('student_council') || hasRole('admin') || hasRole('teacher');
     }
 
     function hasCompletedProfile() {
@@ -37,7 +37,8 @@ service cloud.firestore {
         && request.resource.data.content is string
         && request.resource.data.content.size() >= 5
         && request.resource.data.content.size() <= 5000
-        && request.resource.data.category in ['자유게시판', '질문게시판'];
+        && request.resource.data.category in ['자유게시판', '질문게시판', '학생회 공지']
+        && (request.resource.data.category != '학생회 공지' || isStaff());
     }
 
     function validStudentProfile() {
@@ -55,7 +56,7 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isOwner(userId) || isStaff();
       allow create: if isOwner(userId)
-        && request.resource.data.role == 'student'
+        && request.resource.data.role == 'general'
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.email == request.auth.token.email;
       allow update: if isOwner(userId)
@@ -67,21 +68,9 @@ service cloud.firestore {
 
     match /posts/{postId} {
       allow read: if hasCompletedProfile() && resource.data.status == 'published';
-      allow create: if hasCompletedProfile()
-        && validPost()
-        && request.resource.data.keys().hasOnly([
-          'title', 'content', 'category', 'authorId', 'authorNickname',
-          'status', 'likeCount', 'commentCount', 'createdAt', 'updatedAt'
-        ])
-        && request.resource.data.authorId == request.auth.uid
-        && request.resource.data.authorNickname is string
-        && request.resource.data.authorNickname.size() >= 2
-        && request.resource.data.authorNickname.size() <= 20
-        && request.resource.data.status == 'published'
-        && request.resource.data.likeCount == 0
-        && request.resource.data.commentCount == 0
-        && request.resource.data.createdAt == request.time
-        && request.resource.data.updatedAt == request.time;
+      // New posts are created by the trusted server route so six-character IDs
+      // can be allocated atomically without exposing overwrite access.
+      allow create: if false;
       allow update: if hasCompletedProfile()
         && resource.data.authorId == request.auth.uid
         && request.resource.data.authorId == resource.data.authorId
@@ -103,6 +92,10 @@ service cloud.firestore {
     }
 
     match /reports/{reportId} {
+      allow read, write: if false;
+    }
+
+    match /announcements/{announcementId} {
       allow read, write: if false;
     }
 

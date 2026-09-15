@@ -1,5 +1,4 @@
 import {
-  addDoc,
   collection,
   doc,
   limit,
@@ -15,7 +14,11 @@ import {
 import { z } from "zod";
 import { getFirebaseClient } from "@/lib/firebase/client";
 
-export const POST_CATEGORIES = ["자유게시판", "질문게시판"] as const;
+export const POST_CATEGORIES = [
+  "자유게시판",
+  "질문게시판",
+  "학생회 공지",
+] as const;
 export const postInputSchema = z.object({
   title: z.string().trim().min(2, "제목은 2자 이상 입력해 주세요.").max(80),
   content: z.string().trim().min(5, "내용은 5자 이상 입력해 주세요.").max(5000),
@@ -114,22 +117,6 @@ export function subscribeToMyLike(
     doc(getFirebaseClient().db, "posts", postId, "likes", uid),
     (snapshot) => onData(snapshot.exists()),
   );
-}
-export async function createPost(
-  input: PostInput,
-  user: { uid: string; displayName: string | null },
-) {
-  const parsed = postInputSchema.parse(input);
-  return addDoc(collection(getFirebaseClient().db, "posts"), {
-    ...parsed,
-    authorId: user.uid,
-    authorNickname: user.displayName || "동평 학생",
-    status: "published",
-    likeCount: 0,
-    commentCount: 0,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  });
 }
 export async function updatePost(id: string, input: PostInput) {
   await updateDoc(doc(getFirebaseClient().db, "posts", id), {

@@ -1,6 +1,8 @@
 "use client";
 import { FormEvent, useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { MarkdownContent } from "@/components/community/markdown-content";
 import { MarkdownEditor } from "@/components/community/markdown-editor";
@@ -21,7 +23,7 @@ import {
 
 export function PostDetail({ postId }: { postId: string }) {
   const router = useRouter();
-  const { user, configured } = useAuth();
+  const { user, profile, configured } = useAuth();
   const [post, setPost] = useState<CommunityPost | null>();
   const [comments, setComments] = useState<PostComment[]>([]);
   const [liked, setLiked] = useState(false);
@@ -139,6 +141,13 @@ export function PostDetail({ postId }: { postId: string }) {
     <>
       <SiteHeader active="/#community" />
       <main className="page-enter mx-auto min-h-screen max-w-4xl px-5 py-8 sm:px-8">
+        <Link
+          href="/#community"
+          className="mb-5 inline-flex min-h-11 items-center gap-1.5 rounded-full px-3 text-sm font-semibold text-[var(--muted)] hover:bg-black/5"
+        >
+          <ArrowLeft size={16} />
+          커뮤니티로 돌아가기
+        </Link>
         {!configured || !user ? (
           <Message text="학교 계정으로 로그인해 주세요." />
         ) : post === undefined ? (
@@ -152,7 +161,12 @@ export function PostDetail({ postId }: { postId: string }) {
               defaultValue={post.category}
               className="rounded-xl border border-[var(--border)] bg-[#f5f5f7] p-3"
             >
-              {POST_CATEGORIES.map((x) => (
+              {POST_CATEGORIES.filter(
+                (category) =>
+                  category !== "학생회 공지" ||
+                  profile?.role === "student_council" ||
+                  profile?.role === "admin",
+              ).map((x) => (
                 <option key={x}>{x}</option>
               ))}
             </select>
