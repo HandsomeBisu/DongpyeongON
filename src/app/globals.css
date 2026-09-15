@@ -16,10 +16,14 @@
   box-sizing: border-box;
 }
 html {
+  max-width: 100%;
+  overflow-x: clip;
   background: var(--background);
   scroll-behavior: smooth;
 }
 body {
+  max-width: 100%;
+  overflow-x: clip;
   min-height: 100vh;
   margin: 0;
   background:

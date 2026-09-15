@@ -23,11 +23,11 @@ export function AuthButton() {
       </Link>
     );
   return (
-    <div className="flex flex-col items-end gap-1">
-      <div className="flex items-center gap-1">
+    <div className="flex min-w-0 flex-col items-end gap-1">
+      <div className="flex min-w-0 items-center gap-0.5 sm:gap-1">
         <Link
           href="/mypage"
-          className="rounded-full bg-[#007aff] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:scale-[1.03] hover:bg-[#0066d6]"
+          className="max-w-24 truncate rounded-full bg-[#007aff] px-3 py-2 text-sm font-semibold text-white shadow-sm hover:scale-[1.03] hover:bg-[#0066d6] sm:max-w-40 sm:px-4"
         >
           {loading
             ? "확인 중…"
@@ -46,7 +46,7 @@ export function AuthButton() {
               setBusy(false);
             }
           }}
-          className="grid size-9 place-items-center rounded-full text-[var(--muted)] hover:bg-black/5 hover:text-[var(--foreground)] disabled:opacity-50"
+          className="grid size-9 shrink-0 place-items-center rounded-full text-[var(--muted)] hover:bg-black/5 hover:text-[var(--foreground)] disabled:opacity-50"
         >
           <LogOut size={16} />
         </button>

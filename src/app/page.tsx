@@ -92,10 +92,10 @@ export default function HomePage() {
         ? "로그인하면 게시물을 확인할 수 있어요."
         : "등록된 게시물이 없어요.";
   return (
-    <div className="min-h-screen bg-[#f5f5f7]">
-      <header className="glass-bar sticky top-0 z-40">
-        <div className="mx-auto flex h-[74px] max-w-6xl items-center gap-5 px-5">
-          <div className="mr-auto sm:mr-10">
+    <div className="min-h-screen max-w-full overflow-x-clip bg-[#f5f5f7]">
+      <header className="glass-bar sticky top-0 z-40 max-w-full overflow-hidden">
+        <div className="mx-auto flex h-[74px] min-w-0 max-w-6xl items-center gap-2 px-3 sm:gap-5 sm:px-5">
+          <div className="mr-auto min-w-0 sm:mr-10">
             <BrandLogo />
           </div>
           <label className="hidden h-11 max-w-md flex-1 items-center gap-2.5 rounded-xl border border-black/10 bg-white px-4 text-[var(--muted)] shadow-sm transition focus-within:border-[#007aff]/40 focus-within:shadow-[0_0_0_4px_rgba(0,122,255,.09)] sm:flex">
@@ -106,7 +106,7 @@ export default function HomePage() {
               className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[#9a9aa0]"
             />
           </label>
-          <div className="ml-auto flex items-center gap-2 sm:gap-4">
+          <div className="ml-auto flex min-w-0 shrink items-center gap-1 sm:gap-4">
             <Link
               href="/suggestions"
               className="hidden items-center gap-2 rounded-full px-3 py-2 text-sm font-medium text-[var(--muted)] hover:bg-black/5 hover:text-[var(--foreground)] lg:flex"
@@ -124,7 +124,7 @@ export default function HomePage() {
             <span className="hidden h-5 w-px bg-black/10 lg:block" />
             <button
               aria-label="알림"
-              className="grid size-10 place-items-center rounded-full text-[var(--muted)] hover:scale-105 hover:bg-white hover:shadow-sm"
+              className="hidden size-10 place-items-center rounded-full text-[var(--muted)] hover:scale-105 hover:bg-white hover:shadow-sm sm:grid"
             >
               <Bell size={19} />
             </button>
@@ -136,8 +136,8 @@ export default function HomePage() {
 
       <AnnouncementBanner />
 
-      <main className="page-enter mx-auto grid max-w-6xl gap-8 px-5 py-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start lg:py-10">
-        <div className="space-y-10">
+      <main className="page-enter mx-auto grid min-w-0 max-w-6xl gap-8 px-4 py-8 sm:px-5 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start lg:py-10">
+        <div className="min-w-0 space-y-10">
           <DashboardSection icon={<Activity size={25} />} title="실시간 인기글">
             <PostPanel
               posts={realtimePosts}
@@ -150,13 +150,13 @@ export default function HomePage() {
             icon={<Flame size={24} />}
             title="HOT 게시글"
             trailing={
-              <div className="flex rounded-xl bg-[#e9e9ed] p-1">
+              <div className="grid w-full grid-cols-4 rounded-xl bg-[#e9e9ed] p-1 sm:flex sm:w-auto">
                 {ranges.map((item) => (
                   <button
                     key={item}
                     type="button"
                     onClick={() => setRange(item)}
-                    className={`rounded-[9px] px-3 py-1.5 text-xs font-medium ${range === item ? "bg-white text-[var(--foreground)] shadow-sm" : "text-[var(--muted)] hover:text-[var(--foreground)]"}`}
+                    className={`rounded-[9px] px-2 py-2 text-xs font-medium sm:px-3 sm:py-1.5 ${range === item ? "bg-white text-[var(--foreground)] shadow-sm" : "text-[var(--muted)] hover:text-[var(--foreground)]"}`}
                   >
                     {item}
                   </button>
@@ -298,7 +298,9 @@ function DashboardSection({
         <span>{icon}</span>
         <h2 className="text-2xl font-bold tracking-[-0.03em]">{title}</h2>
         {trailing && (
-          <div className="ml-auto max-w-full overflow-x-auto">{trailing}</div>
+          <div className="w-full max-w-full sm:ml-auto sm:w-auto">
+            {trailing}
+          </div>
         )}
       </div>
       {children}
@@ -364,7 +366,7 @@ function PostPanel({
           href={`/post/${post.id}`}
           className="group block px-5 py-4 hover:bg-[#f8f8fa] sm:px-6"
         >
-          <div className="flex items-center gap-2 text-xs text-[var(--muted)]">
+          <div className="flex min-w-0 flex-wrap items-center gap-2 text-xs text-[var(--muted)]">
             <span className="rounded-full bg-[#f2f2f7] px-2 py-1 font-semibold">
               {post.category}
             </span>

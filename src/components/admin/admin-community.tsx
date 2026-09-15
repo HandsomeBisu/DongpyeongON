@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { FormEvent, useEffect, useState } from "react";
 import { SiteHeader } from "@/components/site-header";
+import { MarkdownEditor } from "@/components/community/markdown-editor";
 import { adminFetch } from "@/lib/admin-fetch";
 import type { SiteAnnouncement } from "@/lib/announcements";
 import type { ContentStatus } from "@/types/domain";
@@ -90,7 +91,16 @@ export function AdminCommunity() {
         showBanner: data.get("showBanner") === "on",
         createdAt: new Date().toISOString(),
       };
-      setAnnouncements((items) => [created, ...items].slice(0, 30));
+      setAnnouncements((items) => [
+        created,
+        ...items
+          .map((item) => ({
+            ...item,
+            showPopup: created.showPopup ? false : item.showPopup,
+            showBanner: created.showBanner ? false : item.showBanner,
+          }))
+          .slice(0, 29),
+      ]);
       setAnnouncementMessage("전체 공지를 등록했어요.");
       form.reset();
     } else {
@@ -162,15 +172,16 @@ export function AdminCommunity() {
               placeholder="공지 제목"
               className="h-12 rounded-2xl border border-[var(--border)] bg-[#f5f5f7] px-4 outline-none focus:border-[#007aff]"
             />
-            <textarea
-              name="content"
-              required
-              minLength={2}
-              maxLength={3000}
-              rows={5}
-              placeholder="전체 사용자에게 알릴 내용을 입력해 주세요."
-              className="resize-y rounded-2xl border border-[var(--border)] bg-[#f5f5f7] p-4 leading-6 outline-none focus:border-[#007aff]"
-            />
+            <div>
+              <span className="mb-2 block text-sm font-semibold">
+                공지 내용
+              </span>
+              <MarkdownEditor
+                name="content"
+                rows={8}
+                placeholder="전체 사용자에게 알릴 내용을 입력해 주세요."
+              />
+            </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <AnnouncementOption
                 name="showPopup"
@@ -205,9 +216,20 @@ export function AdminCommunity() {
                     key={announcement.id}
                     className="flex flex-wrap items-center gap-2 rounded-2xl bg-[#f5f5f7] px-4 py-3"
                   >
-                    <strong className="min-w-0 flex-1 truncate text-sm">
-                      {announcement.title}
-                    </strong>
+                    {announcement.showPopup || announcement.showBanner ? (
+                      <Link
+                        href={`/announcement/${announcement.id}`}
+                        target="_blank"
+                        className="flex min-w-0 flex-1 items-center gap-1.5 text-sm font-bold hover:text-[#007aff]"
+                      >
+                        <span className="truncate">{announcement.title}</span>
+                        <ExternalLink size={13} className="shrink-0" />
+                      </Link>
+                    ) : (
+                      <strong className="min-w-0 flex-1 truncate text-sm">
+                        {announcement.title}
+                      </strong>
+                    )}
                     {announcement.showPopup && (
                       <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-[#af52de]">
                         팝업

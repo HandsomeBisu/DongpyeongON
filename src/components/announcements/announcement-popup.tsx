@@ -1,10 +1,14 @@
 "use client";
 
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Megaphone, X } from "lucide-react";
 import { useEffect, useState } from "react";
+import { MarkdownContent } from "@/components/community/markdown-content";
 import { fetchAnnouncements, type SiteAnnouncement } from "@/lib/announcements";
 
 export function AnnouncementPopup() {
+  const pathname = usePathname();
   const [announcement, setAnnouncement] = useState<SiteAnnouncement | null>(
     null,
   );
@@ -17,10 +21,10 @@ export function AnnouncementPopup() {
           item &&
           sessionStorage.getItem(`dpon:announcement:${item.id}`) !== "seen"
         )
-          setAnnouncement(item);
+          if (pathname !== `/announcement/${item.id}`) setAnnouncement(item);
       })
       .catch(() => undefined);
-  }, []);
+  }, [pathname]);
 
   function close() {
     if (announcement)
@@ -62,16 +66,26 @@ export function AnnouncementPopup() {
             <X size={18} />
           </button>
         </div>
-        <p className="mt-6 max-h-[50dvh] overflow-y-auto whitespace-pre-wrap break-words text-sm leading-7 text-[#3a3a3c]">
-          {announcement.content}
-        </p>
-        <button
-          type="button"
-          onClick={close}
-          className="mt-7 h-12 w-full rounded-full bg-[#007aff] text-sm font-bold text-white"
-        >
-          확인했어요
-        </button>
+        <MarkdownContent
+          content={announcement.content}
+          className="mt-6 max-h-[45dvh] overflow-y-auto text-sm text-[#3a3a3c]"
+        />
+        <div className="mt-7 grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={close}
+            className="h-12 rounded-full bg-[#f2f2f7] text-sm font-semibold"
+          >
+            닫기
+          </button>
+          <Link
+            href={`/announcement/${announcement.id}`}
+            onClick={close}
+            className="inline-flex h-12 items-center justify-center rounded-full bg-[#007aff] text-sm font-bold text-white"
+          >
+            자세히 보기
+          </Link>
+        </div>
       </section>
     </div>
   );

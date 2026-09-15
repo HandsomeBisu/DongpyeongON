@@ -23,9 +23,9 @@ const links = [
 export function SiteHeader({ active = "" }: { active?: string }) {
   return (
     <>
-      <header className="glass-bar sticky top-0 z-40">
-        <div className="mx-auto flex h-[74px] max-w-6xl items-center gap-5 px-5">
-          <div className="mr-auto sm:mr-10">
+      <header className="glass-bar sticky top-0 z-40 max-w-full overflow-hidden">
+        <div className="mx-auto flex h-[74px] min-w-0 max-w-6xl items-center gap-2 px-3 sm:gap-5 sm:px-5">
+          <div className="mr-auto min-w-0 sm:mr-10">
             <BrandLogo />
           </div>
           <label className="hidden h-11 max-w-md flex-1 items-center gap-2.5 rounded-xl border border-black/10 bg-white px-4 text-[var(--muted)] shadow-sm transition focus-within:border-[#007aff]/40 focus-within:shadow-[0_0_0_4px_rgba(0,122,255,.09)] sm:flex">
@@ -36,7 +36,7 @@ export function SiteHeader({ active = "" }: { active?: string }) {
               className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[#9a9aa0]"
             />
           </label>
-          <div className="ml-auto flex items-center gap-2 sm:gap-4">
+          <div className="ml-auto flex min-w-0 shrink items-center gap-1 sm:gap-4">
             <Link
               href="/suggestions"
               className="hidden items-center gap-2 rounded-full px-3 py-2 text-sm font-medium text-[var(--muted)] hover:bg-black/5 hover:text-[var(--foreground)] lg:flex"
@@ -54,7 +54,7 @@ export function SiteHeader({ active = "" }: { active?: string }) {
             <span className="hidden h-5 w-px bg-black/10 lg:block" />
             <button
               aria-label="알림"
-              className="grid size-10 place-items-center rounded-full text-[var(--muted)] hover:scale-105 hover:bg-white hover:shadow-sm"
+              className="hidden size-10 place-items-center rounded-full text-[var(--muted)] hover:scale-105 hover:bg-white hover:shadow-sm sm:grid"
             >
               <Bell size={19} />
             </button>

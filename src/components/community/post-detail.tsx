@@ -2,35 +2,36 @@
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowLeft,
+  LoaderCircle,
+  Trash2,
+  X,
+} from "lucide-react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { MarkdownContent } from "@/components/community/markdown-content";
-import { MarkdownEditor } from "@/components/community/markdown-editor";
 import { SiteHeader } from "@/components/site-header";
 import { authenticatedFetch } from "@/lib/authenticated-fetch";
 import {
-  POST_CATEGORIES,
   archivePost,
   formatPostDate,
-  postInputSchema,
   subscribeToComments,
   subscribeToMyLike,
   subscribeToPost,
-  updatePost,
   type CommunityPost,
   type PostComment,
 } from "@/lib/posts";
 
 export function PostDetail({ postId }: { postId: string }) {
   const router = useRouter();
-  const { user, profile, configured } = useAuth();
+  const { user, configured } = useAuth();
   const [post, setPost] = useState<CommunityPost | null>();
   const [comments, setComments] = useState<PostComment[]>([]);
   const [liked, setLiked] = useState(false);
   const [error, setError] = useState("");
-  const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [reporting, setReporting] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   useEffect(() => {
     if (!configured || !user) return;
     const stops = [
@@ -42,36 +43,16 @@ export function PostDetail({ postId }: { postId: string }) {
     ];
     return () => stops.forEach((stop) => stop());
   }, [configured, postId, user]);
-  async function save(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!post) return;
-    const data = new FormData(event.currentTarget);
-    const result = postInputSchema.safeParse({
-      title: data.get("title"),
-      content: data.get("content"),
-      category: data.get("category"),
-    });
-    if (!result.success)
-      return setError(
-        result.error.issues[0]?.message ?? "입력을 확인해 주세요.",
-      );
-    setBusy(true);
-    try {
-      await updatePost(post.id, result.data);
-      setEditing(false);
-    } catch {
-      setError("수정하지 못했습니다.");
-    } finally {
-      setBusy(false);
-    }
-  }
   async function remove() {
-    if (!post || !confirm("이 게시물을 삭제할까요?")) return;
+    if (!post) return;
+    setBusy(true);
     try {
       await archivePost(post.id);
       router.replace("/#community");
     } catch {
       setError("삭제하지 못했습니다.");
+      setDeleteOpen(false);
+      setBusy(false);
     }
   }
   async function toggleLike() {
@@ -111,31 +92,14 @@ export function PostDetail({ postId }: { postId: string }) {
       setBusy(false);
     }
   }
-  async function report(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!user) return;
-    const form = event.currentTarget;
-    const data = new FormData(form);
-    setBusy(true);
-    try {
-      const response = await authenticatedFetch(user, "/api/reports", {
-        method: "POST",
-        body: JSON.stringify({
-          postId,
-          reason: data.get("reason"),
-          detail: data.get("detail"),
-        }),
-      });
-      if (!response.ok) throw new Error();
-      setReporting(false);
-      setError("");
-      alert("신고가 접수되었습니다.");
-    } catch {
-      setError("신고를 접수하지 못했습니다.");
-    } finally {
-      setBusy(false);
-    }
-  }
+  useEffect(() => {
+    if (!deleteOpen) return;
+    const close = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !busy) setDeleteOpen(false);
+    };
+    document.addEventListener("keydown", close);
+    return () => document.removeEventListener("keydown", close);
+  }, [busy, deleteOpen]);
   const owner = Boolean(user && post && user.uid === post.authorId);
   return (
     <>
@@ -154,41 +118,6 @@ export function PostDetail({ postId }: { postId: string }) {
           <Message text="게시물을 불러오고 있어요." />
         ) : post === null ? (
           <Message text="존재하지 않거나 삭제된 게시물입니다." />
-        ) : editing ? (
-          <form onSubmit={save} className="ios-card mt-4 grid gap-4 p-5 sm:p-8">
-            <select
-              name="category"
-              defaultValue={post.category}
-              className="rounded-xl border border-[var(--border)] bg-[#f5f5f7] p-3"
-            >
-              {POST_CATEGORIES.filter(
-                (category) =>
-                  category !== "학생회 공지" ||
-                  profile?.role === "student_council" ||
-                  profile?.role === "admin",
-              ).map((x) => (
-                <option key={x}>{x}</option>
-              ))}
-            </select>
-            <input
-              name="title"
-              defaultValue={post.title}
-              required
-              maxLength={80}
-              className="rounded-xl border border-[var(--border)] bg-[#f5f5f7] p-3"
-            />
-            <MarkdownEditor
-              name="content"
-              defaultValue={post.content}
-              rows={12}
-            />
-            <button
-              disabled={busy}
-              className="justify-self-end rounded-full bg-[var(--primary)] px-5 py-2.5 text-white"
-            >
-              저장
-            </button>
-          </form>
         ) : (
           <>
             <article className="ios-card p-5 sm:p-8">
@@ -212,22 +141,22 @@ export function PostDetail({ postId }: { postId: string }) {
                   ♥ 좋아요 {post.likeCount}
                 </button>
                 <div className="flex gap-2">
-                  <button
-                    onClick={() => setReporting(!reporting)}
+                  <Link
+                    href={`/post/${postId}/report`}
                     className="rounded-full border border-[var(--border)] px-4 py-2"
                   >
                     신고
-                  </button>
+                  </Link>
                   {owner && (
                     <>
-                      <button
-                        onClick={() => setEditing(true)}
+                      <Link
+                        href={`/post/${postId}/edit`}
                         className="rounded-full border border-[var(--border)] px-4 py-2"
                       >
                         수정
-                      </button>
+                      </Link>
                       <button
-                        onClick={remove}
+                        onClick={() => setDeleteOpen(true)}
                         className="rounded-full bg-red-50 px-4 py-2 text-red-700"
                       >
                         삭제
@@ -237,37 +166,6 @@ export function PostDetail({ postId }: { postId: string }) {
                 </div>
               </div>
             </article>
-            {reporting && (
-              <form onSubmit={report} className="ios-card mt-4 grid gap-3 p-5">
-                <strong>게시물 신고</strong>
-                <select
-                  name="reason"
-                  className="rounded-xl border border-[var(--border)] bg-[#f5f5f7] p-3"
-                >
-                  {[
-                    "욕설·비방",
-                    "개인정보 노출",
-                    "광고·도배",
-                    "부적절한 내용",
-                    "기타",
-                  ].map((x) => (
-                    <option key={x}>{x}</option>
-                  ))}
-                </select>
-                <textarea
-                  name="detail"
-                  maxLength={500}
-                  placeholder="상세 내용(선택)"
-                  className="rounded-xl border border-[var(--border)] bg-[#f5f5f7] p-3"
-                />
-                <button
-                  disabled={busy}
-                  className="justify-self-end rounded-full bg-red-600 px-4 py-2 text-white"
-                >
-                  신고 접수
-                </button>
-              </form>
-            )}
             <section className="ios-card mt-6 p-5 sm:p-6">
               <h2 className="text-xl font-bold">댓글 {comments.length}</h2>
               <form
@@ -310,6 +208,66 @@ export function PostDetail({ postId }: { postId: string }) {
           <p className="mt-5 rounded-2xl bg-red-50 p-4 text-red-800">{error}</p>
         )}
       </main>
+      {deleteOpen && post && (
+        <div
+          className="fixed inset-0 z-[100] grid place-items-center bg-black/30 p-5 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-post-title"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !busy)
+              setDeleteOpen(false);
+          }}
+        >
+          <section className="ios-pop w-full max-w-sm rounded-[28px] bg-white p-6 shadow-2xl sm:p-7">
+            <div className="flex items-start gap-3">
+              <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-red-50 text-red-600">
+                <AlertTriangle size={21} />
+              </span>
+              <div className="min-w-0 flex-1">
+                <h2 id="delete-post-title" className="text-xl font-bold">
+                  정말로 삭제할까요?
+                </h2>
+                <p className="mt-2 break-keep text-sm leading-6 text-[var(--muted)]">
+                  삭제한 게시물은 다시 복구할 수 없어요.
+                </p>
+              </div>
+              <button
+                type="button"
+                aria-label="삭제 확인 닫기"
+                disabled={busy}
+                onClick={() => setDeleteOpen(false)}
+                className="grid size-9 shrink-0 place-items-center rounded-full bg-[#f2f2f7] text-[var(--muted)] disabled:opacity-40"
+              >
+                <X size={17} />
+              </button>
+            </div>
+            <div className="mt-6 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => setDeleteOpen(false)}
+                className="h-12 rounded-full bg-[#f2f2f7] text-sm font-semibold disabled:opacity-40"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void remove()}
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-red-600 text-sm font-bold text-white disabled:opacity-50"
+              >
+                {busy ? (
+                  <LoaderCircle size={17} className="animate-spin" />
+                ) : (
+                  <Trash2 size={17} />
+                )}
+                삭제
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </>
   );
 }

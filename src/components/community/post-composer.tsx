@@ -18,7 +18,13 @@ import { useAuth } from "@/components/auth/auth-provider";
 import { MarkdownEditor } from "@/components/community/markdown-editor";
 import { SiteHeader } from "@/components/site-header";
 import { authenticatedFetch } from "@/lib/authenticated-fetch";
-import { POST_CATEGORIES, postInputSchema } from "@/lib/posts";
+import {
+  POST_CATEGORIES,
+  postInputSchema,
+  subscribeToPost,
+  updatePost,
+  type CommunityPost,
+} from "@/lib/posts";
 
 type PostCategory = (typeof POST_CATEGORIES)[number];
 
@@ -43,10 +49,13 @@ const boardDetails = {
   { description: string; icon: typeof MessagesSquare; color: string }
 >;
 
-export function PostComposer() {
+export function PostComposer({ postId }: { postId?: string }) {
   const router = useRouter();
   const { user, profile, loading } = useAuth();
   const [board, setBoard] = useState<PostCategory>(POST_CATEGORIES[0]);
+  const [editingPost, setEditingPost] = useState<
+    CommunityPost | null | undefined
+  >(postId ? undefined : null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [selectionConfirmation, setSelectionConfirmation] = useState("");
@@ -55,6 +64,21 @@ export function PostComposer() {
   useEffect(() => {
     if (!loading && !user) router.replace("/login");
   }, [loading, router, user]);
+
+  useEffect(() => {
+    if (!postId || !user) return;
+    return subscribeToPost(
+      postId,
+      (post) => {
+        setEditingPost(post);
+        if (post) setBoard(post.category);
+      },
+      () => {
+        setEditingPost(null);
+        setError("게시물을 불러오지 못했어요.");
+      },
+    );
+  }, [postId, user]);
 
   useEffect(
     () => () => {
@@ -91,28 +115,35 @@ export function PostComposer() {
     setSaving(true);
     setError("");
     try {
-      const response = await authenticatedFetch(user, "/api/posts", {
-        method: "POST",
-        body: JSON.stringify(parsed.data),
-      });
-      const result = (await response.json().catch(() => ({}))) as {
-        postId?: string;
-        error?: string;
-      };
-      if (!response.ok || !result.postId)
-        throw new Error(result.error || "게시물을 등록하지 못했어요.");
-      router.push(`/post/${result.postId}`);
+      if (postId) {
+        await updatePost(postId, parsed.data);
+        router.push(`/post/${postId}`);
+      } else {
+        const response = await authenticatedFetch(user, "/api/posts", {
+          method: "POST",
+          body: JSON.stringify(parsed.data),
+        });
+        const result = (await response.json().catch(() => ({}))) as {
+          postId?: string;
+          error?: string;
+        };
+        if (!response.ok || !result.postId)
+          throw new Error(result.error || "게시물을 등록하지 못했어요.");
+        router.push(`/post/${result.postId}`);
+      }
     } catch (caught) {
       setError(
         caught instanceof Error
           ? caught.message
-          : "게시물을 등록하지 못했어요. 잠시 후 다시 시도해 주세요.",
+          : postId
+            ? "게시물을 수정하지 못했어요. 잠시 후 다시 시도해 주세요."
+            : "게시물을 등록하지 못했어요. 잠시 후 다시 시도해 주세요.",
       );
       setSaving(false);
     }
   }
 
-  if (loading || !user)
+  if (loading || !user || (postId && editingPost === undefined))
     return (
       <>
         <SiteHeader active="/#community" />
@@ -122,16 +153,33 @@ export function PostComposer() {
       </>
     );
 
+  if (postId && (!editingPost || editingPost.authorId !== user.uid))
+    return (
+      <>
+        <SiteHeader active="/#community" />
+        <main className="mx-auto max-w-3xl px-5 py-10">
+          <div className="ios-card px-5 py-16 text-center text-sm text-[var(--muted)]">
+            {editingPost
+              ? "이 게시물을 수정할 권한이 없어요."
+              : "존재하지 않거나 삭제된 게시물이에요."}
+          </div>
+        </main>
+      </>
+    );
+
+  const isEditing = Boolean(postId && editingPost);
+  const returnHref = postId ? `/post/${postId}` : "/#community";
+
   return (
     <>
       <SiteHeader active="/#community" />
       <main className="page-enter mx-auto min-h-[calc(100dvh-74px)] max-w-3xl px-5 py-7 sm:px-8 sm:py-10">
         <Link
-          href="/#community"
+          href={returnHref}
           className="inline-flex min-h-11 items-center gap-1.5 rounded-full px-3 text-sm font-semibold text-[var(--muted)] hover:bg-black/5"
         >
           <ArrowLeft size={16} />
-          커뮤니티로 돌아가기
+          {isEditing ? "게시물로 돌아가기" : "커뮤니티로 돌아가기"}
         </Link>
 
         <div className="mt-5">
@@ -141,15 +189,17 @@ export function PostComposer() {
             </span>
             <div>
               <p className="text-xs font-bold tracking-[.12em] text-[#007aff]">
-                NEW POST
+                {isEditing ? "EDIT POST" : "NEW POST"}
               </p>
               <h1 className="mt-1 text-[28px] font-bold tracking-[-.04em] sm:text-3xl">
-                새 게시물 작성
+                {isEditing ? "게시물 수정" : "새 게시물 작성"}
               </h1>
             </div>
           </div>
           <p className="mt-3 break-keep text-sm leading-6 text-[var(--muted)]">
-            게시판을 고르고 우리 학교 친구들과 이야기를 나눠보세요.
+            {isEditing
+              ? "작성 화면과 같은 방식으로 내용을 편집할 수 있어요."
+              : "게시판을 고르고 우리 학교 친구들과 이야기를 나눠보세요."}
           </p>
         </div>
 
@@ -171,6 +221,7 @@ export function PostComposer() {
               maxLength={80}
               disabled={saving}
               placeholder="제목을 입력해 주세요"
+              defaultValue={editingPost?.title ?? ""}
               className="h-14 w-full rounded-2xl border border-[var(--border)] bg-[#f5f5f7] px-4 text-base font-semibold outline-none placeholder:font-normal placeholder:text-[#aaaab2] focus:border-[#007aff] focus:ring-4 focus:ring-blue-500/10 disabled:opacity-60"
             />
           </label>
@@ -180,6 +231,7 @@ export function PostComposer() {
               name="content"
               rows={12}
               placeholder="내용을 입력해 주세요"
+              defaultValue={editingPost?.content ?? ""}
             />
           </div>
           {error && (
@@ -192,7 +244,7 @@ export function PostComposer() {
           )}
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <Link
-              href="/#community"
+              href={returnHref}
               aria-disabled={saving}
               onClick={(event) => {
                 if (saving) event.preventDefault();
@@ -207,6 +259,8 @@ export function PostComposer() {
             >
               {saving ? (
                 <LoaderCircle size={18} className="animate-spin" />
+              ) : isEditing ? (
+                "수정 완료"
               ) : (
                 "게시하기"
               )}
