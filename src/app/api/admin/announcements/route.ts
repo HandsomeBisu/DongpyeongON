@@ -3,6 +3,7 @@ import { z } from "zod";
 import { apiError } from "@/lib/api-auth";
 import { verifyAdminCategoryRequest } from "@/lib/admin-session";
 import { getAdminDb } from "@/lib/firebase/admin";
+import { notifyAllUsers, safelyNotify } from "@/lib/notifications";
 
 const announcementSchema = z.object({
   title: z.string().trim().min(2).max(80),
@@ -71,6 +72,14 @@ export async function POST(request: Request) {
       updatedAt: FieldValue.serverTimestamp(),
     });
     await batch.commit();
+    await safelyNotify(() =>
+      notifyAllUsers({
+        type: "site_announcement",
+        title: "새로운 전체 공지가 등록됐어요.",
+        body: parsed.data.title,
+        href: `/announcement/${ref.id}`,
+      }),
+    );
     return Response.json({ id: ref.id }, { status: 201 });
   } catch (error) {
     return apiError(error);

@@ -41,6 +41,7 @@ export interface PostComment {
   authorId: string;
   authorNickname: string;
   createdAt: Timestamp | null;
+  updatedAt: Timestamp | null;
 }
 function mapPost(snapshot: {
   id: string;
@@ -104,6 +105,7 @@ export function subscribeToComments(
           authorId: item.data().authorId,
           authorNickname: item.data().authorNickname,
           createdAt: item.data().createdAt ?? null,
+          updatedAt: item.data().updatedAt ?? null,
         })),
       ),
   );

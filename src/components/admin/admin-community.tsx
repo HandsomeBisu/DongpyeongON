@@ -12,6 +12,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { SiteHeader } from "@/components/site-header";
 import { MarkdownEditor } from "@/components/community/markdown-editor";
 import { adminFetch } from "@/lib/admin-fetch";
+import { CommunityAdminNav } from "@/components/admin/community-admin-nav";
 import type { SiteAnnouncement } from "@/lib/announcements";
 import type { ContentStatus } from "@/types/domain";
 
@@ -135,6 +136,7 @@ export function AdminCommunity() {
           <ArrowLeft size={16} />
           관리자 홈
         </Link>
+        <CommunityAdminNav active="/admin/community" />
         <div className="mb-6 flex items-end justify-between gap-4">
           <div>
             <p className="text-sm font-semibold text-[#af52de]">

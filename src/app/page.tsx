@@ -3,7 +3,6 @@
 import Link from "next/link";
 import {
   Activity,
-  Bell,
   Clock3,
   Flame,
   Home,
@@ -22,6 +21,7 @@ import { AnnouncementBanner } from "@/components/announcements/announcement-bann
 import { AuthButton } from "@/components/auth/auth-button";
 import { useAuth } from "@/components/auth/auth-provider";
 import { BrandLogo } from "@/components/brand-logo";
+import { NotificationCenter } from "@/components/notifications/notification-center";
 import { markdownToPlainText } from "@/lib/markdown";
 import {
   formatPostDate,
@@ -122,12 +122,7 @@ export default function HomePage() {
               점심시간 노래방송
             </Link>
             <span className="hidden h-5 w-px bg-black/10 lg:block" />
-            <button
-              aria-label="알림"
-              className="hidden size-10 place-items-center rounded-full text-[var(--muted)] hover:scale-105 hover:bg-white hover:shadow-sm sm:grid"
-            >
-              <Bell size={19} />
-            </button>
+            <NotificationCenter />
             <span className="hidden h-5 w-px bg-black/10 sm:block" />
             <AuthButton />
           </div>

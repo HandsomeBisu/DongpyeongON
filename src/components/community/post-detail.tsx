@@ -5,7 +5,10 @@ import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
   ArrowLeft,
+  Check,
+  Flag,
   LoaderCircle,
+  Pencil,
   Trash2,
   X,
 } from "lucide-react";
@@ -32,6 +35,11 @@ export function PostDetail({ postId }: { postId: string }) {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deletingComment, setDeletingComment] = useState<PostComment | null>(
+    null,
+  );
+  const [editingCommentId, setEditingCommentId] = useState("");
+  const [editingContent, setEditingContent] = useState("");
   useEffect(() => {
     if (!configured || !user) return;
     const stops = [
@@ -92,14 +100,61 @@ export function PostDetail({ postId }: { postId: string }) {
       setBusy(false);
     }
   }
+  async function updateComment(commentId: string) {
+    if (!user || !editingContent.trim()) return;
+    setBusy(true);
+    setError("");
+    try {
+      const response = await authenticatedFetch(
+        user,
+        `/api/posts/${postId}/comments/${commentId}`,
+        { method: "PATCH", body: JSON.stringify({ content: editingContent }) },
+      );
+      const result = (await response.json().catch(() => ({}))) as {
+        error?: string;
+      };
+      if (!response.ok) throw new Error(result.error);
+      setEditingCommentId("");
+      setEditingContent("");
+    } catch (caught) {
+      setError(
+        caught instanceof Error && caught.message
+          ? caught.message
+          : "댓글을 수정하지 못했습니다.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function removeComment() {
+    if (!user || !deletingComment) return;
+    setBusy(true);
+    setError("");
+    try {
+      const response = await authenticatedFetch(
+        user,
+        `/api/posts/${postId}/comments/${deletingComment.id}`,
+        { method: "DELETE" },
+      );
+      if (!response.ok) throw new Error();
+      setDeletingComment(null);
+    } catch {
+      setError("댓글을 삭제하지 못했습니다.");
+    } finally {
+      setBusy(false);
+    }
+  }
   useEffect(() => {
-    if (!deleteOpen) return;
+    if (!deleteOpen && !deletingComment) return;
     const close = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !busy) setDeleteOpen(false);
+      if (event.key === "Escape" && !busy) {
+        setDeleteOpen(false);
+        setDeletingComment(null);
+      }
     };
     document.addEventListener("keydown", close);
     return () => document.removeEventListener("keydown", close);
-  }, [busy, deleteOpen]);
+  }, [busy, deleteOpen, deletingComment]);
   const owner = Boolean(user && post && user.uid === post.authorId);
   return (
     <>
@@ -189,15 +244,79 @@ export function PostDetail({ postId }: { postId: string }) {
               <div className="mt-5 divide-y divide-[var(--border)]">
                 {comments.map((comment) => (
                   <div key={comment.id} className="py-4">
-                    <div className="text-sm font-semibold">
-                      {comment.authorNickname}{" "}
-                      <span className="font-normal text-[var(--muted)]">
-                        · {formatPostDate(comment.createdAt)}
-                      </span>
+                    <div className="flex items-start gap-3">
+                      <div className="min-w-0 flex-1 text-sm font-semibold">
+                        {comment.authorNickname}{" "}
+                        <span className="font-normal text-[var(--muted)]">
+                          · {formatPostDate(comment.createdAt)}
+                          {comment.updatedAt && " · 수정됨"}
+                        </span>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-1">
+                        <Link
+                          href={`/post/${postId}/comment/${comment.id}/report`}
+                          aria-label="댓글 신고"
+                          className="grid size-9 place-items-center rounded-full text-[var(--muted)] hover:bg-red-50 hover:text-red-600"
+                        >
+                          <Flag size={15} />
+                        </Link>
+                        {comment.authorId === user.uid && (
+                          <>
+                            <button
+                              type="button"
+                              aria-label="댓글 수정"
+                              onClick={() => {
+                                setEditingCommentId(comment.id);
+                                setEditingContent(comment.content);
+                              }}
+                              className="grid size-9 place-items-center rounded-full text-[var(--muted)] hover:bg-[#edf5ff] hover:text-[#007aff]"
+                            >
+                              <Pencil size={15} />
+                            </button>
+                            <button
+                              type="button"
+                              aria-label="댓글 삭제"
+                              onClick={() => setDeletingComment(comment)}
+                              className="grid size-9 place-items-center rounded-full text-[var(--muted)] hover:bg-red-50 hover:text-red-600"
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </div>
-                    <p className="mt-2 whitespace-pre-wrap">
-                      {comment.content}
-                    </p>
+                    {editingCommentId === comment.id ? (
+                      <div className="mt-3 rounded-2xl bg-[#f5f5f7] p-3">
+                        <textarea
+                          value={editingContent}
+                          onChange={(event) => setEditingContent(event.target.value)}
+                          maxLength={1000}
+                          rows={4}
+                          autoFocus
+                          className="w-full resize-y bg-transparent leading-6 outline-none"
+                        />
+                        <div className="mt-2 flex justify-end gap-2">
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => setEditingCommentId("")}
+                            className="h-9 rounded-full px-4 text-xs font-semibold text-[var(--muted)] hover:bg-black/5"
+                          >
+                            취소
+                          </button>
+                          <button
+                            type="button"
+                            disabled={busy || !editingContent.trim()}
+                            onClick={() => void updateComment(comment.id)}
+                            className="inline-flex h-9 items-center gap-1.5 rounded-full bg-[#007aff] px-4 text-xs font-bold text-white disabled:opacity-50"
+                          >
+                            <Check size={14} /> 저장
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="mt-2 whitespace-pre-wrap">{comment.content}</p>
+                    )}
                   </div>
                 ))}
               </div>
@@ -262,6 +381,49 @@ export function PostDetail({ postId }: { postId: string }) {
                 ) : (
                   <Trash2 size={17} />
                 )}
+                삭제
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+      {deletingComment && (
+        <div
+          className="fixed inset-0 z-[100] grid place-items-center bg-black/30 p-5 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-comment-title"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !busy)
+              setDeletingComment(null);
+          }}
+        >
+          <section className="ios-pop w-full max-w-sm rounded-[28px] bg-white p-6 shadow-2xl sm:p-7">
+            <span className="grid size-11 place-items-center rounded-2xl bg-red-50 text-red-600">
+              <AlertTriangle size={21} />
+            </span>
+            <h2 id="delete-comment-title" className="mt-4 text-xl font-bold">
+              댓글을 삭제할까요?
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+              삭제한 댓글은 다시 복구할 수 없어요.
+            </p>
+            <div className="mt-6 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => setDeletingComment(null)}
+                className="h-12 rounded-full bg-[#f2f2f7] text-sm font-semibold"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void removeComment()}
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-red-600 text-sm font-bold text-white disabled:opacity-50"
+              >
+                {busy ? <LoaderCircle size={17} className="animate-spin" /> : <Trash2 size={17} />}
                 삭제
               </button>
             </div>

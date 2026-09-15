@@ -99,6 +99,11 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    match /notifications/{notificationId} {
+      // Notification delivery and deletion are handled by trusted server routes.
+      allow read, write: if false;
+    }
+
     // Suggestions are submitted and read through trusted server routes only.
     match /suggestions/{suggestionId} {
       allow read, write: if false;

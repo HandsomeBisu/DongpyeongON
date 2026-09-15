@@ -12,7 +12,7 @@ export default function PrivacyPage() {
       eyebrow="PRIVACY POLICY"
       title="개인정보 처리방침"
       description="DPS Team은 동평ON 이용자의 개인정보를 중요하게 생각하며, 처리 목적과 범위를 투명하게 안내합니다."
-      effectiveDate="2026년 9월 15일"
+      effectiveDate="2026년 9월 16일"
     >
       <PolicySection title="1. 개인정보 처리방침의 목적">
         <p>
@@ -65,6 +65,12 @@ export default function PrivacyPage() {
                 </td>
                 <td>권리 침해 대응, 서비스 안전 관리, 학교 건의 처리</td>
                 <td>서비스 운영기간 또는 관련 요청의 삭제 처리 완료 시까지</td>
+              </tr>
+              <tr>
+                <td>알림</td>
+                <td>알림 유형·내용·연결 주소, 수신자 식별정보, 생성 시각</td>
+                <td>공지, 커뮤니티 반응 및 신고 처리 결과 안내</td>
+                <td>이용자가 모두 지우기를 실행하거나 계정을 삭제할 때까지</td>
               </tr>
               <tr>
                 <td>신청곡</td>

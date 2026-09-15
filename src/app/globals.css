@@ -134,6 +134,23 @@ button:not(:disabled) {
     transform: scale(0.94);
   }
 }
+@keyframes notification-drawer-enter {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+@keyframes notification-clear {
+  to {
+    opacity: 0;
+    transform: translateX(42px) scale(0.94);
+    filter: blur(3px);
+  }
+}
 .page-enter {
   animation: ios-enter 560ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
@@ -158,6 +175,13 @@ button:not(:disabled) {
 }
 .selection-success {
   animation: selection-success 680ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.notification-drawer {
+  animation: notification-drawer-enter 480ms
+    cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.notification-item-clearing {
+  animation: notification-clear 380ms cubic-bezier(0.4, 0, 1, 1) both;
 }
 .markdown-content {
   overflow-wrap: anywhere;

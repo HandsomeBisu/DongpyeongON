@@ -7,6 +7,7 @@ import {
 import { getAdminDb } from "@/lib/firebase/admin";
 import { createPostId } from "@/lib/post-id";
 import { postInputSchema } from "@/lib/posts";
+import { notifyAllUsers, safelyNotify } from "@/lib/notifications";
 
 const MAX_ID_ATTEMPTS = 8;
 
@@ -62,7 +63,19 @@ export async function POST(request: Request) {
         });
         return true;
       });
-      if (created) return Response.json({ postId }, { status: 201 });
+      if (created) {
+        if (input.data.category === "학생회 공지")
+          await safelyNotify(() =>
+            notifyAllUsers({
+              actorId: user.uid,
+              type: "student_council_announcement",
+              title: "새로운 학생회 공지가 등록됐어요.",
+              body: input.data.title,
+              href: `/post/${postId}`,
+            }),
+          );
+        return Response.json({ postId }, { status: 201 });
+      }
     }
 
     throw new Error("POST_ID_ALLOCATION_FAILED");

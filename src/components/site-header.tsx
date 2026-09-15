@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import {
-  Bell,
   Home,
   Inbox,
   MessageCircle,
@@ -12,6 +11,7 @@ import {
 } from "lucide-react";
 import { AuthButton } from "@/components/auth/auth-button";
 import { BrandLogo } from "@/components/brand-logo";
+import { NotificationCenter } from "@/components/notifications/notification-center";
 
 const links = [
   { href: "/", label: "홈", icon: Home },
@@ -52,12 +52,7 @@ export function SiteHeader({ active = "" }: { active?: string }) {
               점심시간 노래방송
             </Link>
             <span className="hidden h-5 w-px bg-black/10 lg:block" />
-            <button
-              aria-label="알림"
-              className="hidden size-10 place-items-center rounded-full text-[var(--muted)] hover:scale-105 hover:bg-white hover:shadow-sm sm:grid"
-            >
-              <Bell size={19} />
-            </button>
+            <NotificationCenter />
             <span className="hidden h-5 w-px bg-black/10 sm:block" />
             <AuthButton />
           </div>
