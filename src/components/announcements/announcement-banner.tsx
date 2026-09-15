@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Megaphone, X } from "lucide-react";
+import { X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { fetchAnnouncements, type SiteAnnouncement } from "@/lib/announcements";
 
@@ -22,13 +22,9 @@ export function AnnouncementBanner() {
       <div className="mx-auto flex min-h-11 max-w-6xl items-center gap-2 px-3 py-2 text-sm text-[#005bbb] sm:px-5">
         <Link
           href={`/announcement/${announcement.id}`}
-          className="flex min-w-0 flex-1 items-center gap-2 rounded-lg py-1 hover:opacity-75"
+          className="min-w-0 flex-1 rounded-lg py-1 hover:opacity-75"
         >
-          <Megaphone size={16} className="shrink-0" />
-          <strong className="min-w-0 truncate">{announcement.title}</strong>
-          <span className="hidden min-w-0 truncate text-[#356d9e] sm:block">
-            {announcement.content.replace(/\s+/g, " ")}
-          </span>
+          <strong className="block truncate">{announcement.title}</strong>
         </Link>
         <button
           type="button"
