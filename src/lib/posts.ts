@@ -1,6 +1,7 @@
 import {
   collection,
   doc,
+  limit,
   onSnapshot,
   orderBy,
   query,
@@ -67,18 +68,13 @@ export function subscribeToPosts(
 ) {
   const { db } = getFirebaseClient();
   return onSnapshot(
-    query(collection(db, "posts"), where("status", "==", "published")),
-    (snapshot) =>
-      onData(
-        snapshot.docs
-          .map(mapPost)
-          .sort(
-            (left, right) =>
-              (right.createdAt?.toMillis() ?? 0) -
-              (left.createdAt?.toMillis() ?? 0),
-          )
-          .slice(0, 30),
-      ),
+    query(
+      collection(db, "posts"),
+      where("status", "==", "published"),
+      orderBy("createdAt", "desc"),
+      limit(30),
+    ),
+    (snapshot) => onData(snapshot.docs.map(mapPost)),
     onError,
   );
 }

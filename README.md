@@ -49,11 +49,21 @@ ADMIN_USERS_PASSWORD=
 ADMIN_MUSIC_PASSWORD=
 ADMIN_COMMUNITY_PASSWORD=
 ADMIN_SESSION_SECRET=
+WAITING_ROOM_ENABLED=false
+UPSTASH_REDIS_REST_URL=
+UPSTASH_REDIS_REST_TOKEN=
+QUEUE_SIGNING_SECRET=
 ```
 
 이메일/비밀번호 가입은 Firebase 계정을 만든 뒤 자체 SMTP로 6자리 인증 코드를 발송합니다. 코드는 해시로만 저장되며 10분 후 만료되고, 계정별 60초 재발송 제한, IP별 10분당 100회 요청 제한, 5회 입력 제한이 적용됩니다. `SMTP_PORT=465`이면 일반적으로 `SMTP_SECURE=true`, STARTTLS를 사용하는 `587`이면 `false`로 설정합니다. `EMAIL_VERIFICATION_SECRET`은 32자 이상의 별도 무작위 값이어야 합니다.
 
 `ADMIN_SESSION_SECRET`은 관리자 영역 세션 쿠키 서명에 사용되며 32자 이상의 무작위 값으로 설정합니다. 관리자 영역 비밀번호는 브라우저 번들이나 저장소에 포함되지 않습니다.
+
+## Redis 대기열
+
+동시 이용자는 Redis 기반 대기열에서 최대 100명으로 제한할 수 있습니다. Upstash Redis 데이터베이스를 만든 뒤 REST URL과 토큰, 32자 이상의 별도 서명 키를 Vercel 환경 변수에 등록하고 `WAITING_ROOM_ENABLED=true`로 바꾼 다음 다시 배포합니다. Vercel Upstash 연동이 `KV_REST_API_URL`, `KV_REST_API_TOKEN`을 제공하는 경우에도 동작합니다.
+
+입장 권한은 3분 동안 유지되고 사이트를 열어 둔 동안 45초마다 자동 갱신됩니다. 비활성 이용자의 자리는 만료 후 자동 반환됩니다. Redis 연결 정보 없이 대기열만 활성화하면 보호를 위해 입장을 차단하므로, 환경 변수를 모두 등록한 뒤 활성화해야 합니다.
 
 Spotify 검색과 신청 API는 Firebase 학교 계정 인증을 다시 검증합니다. 신청 한도는 한국 시간 오전 7시부터 다음 날 오전 7시까지 사용자당 한 곡이며, 서버에서 중복 문서 생성을 차단합니다. 관리자 웹 플레이어를 사용하려면 Spotify Developer Dashboard에 `SPOTIFY_REDIRECT_URI`를 Redirect URI로 정확히 등록하고 Spotify Premium 계정을 연결해야 합니다. 운영 환경의 예시는 `https://dpon.dpsteam.kr/api/admin/spotify/callback`입니다.
 

@@ -1,8 +1,5 @@
 import type { Metadata } from "next";
-import { AuthProvider } from "@/components/auth/auth-provider";
-import { OnboardingGuard } from "@/components/auth/onboarding-guard";
-import { AnnouncementPopup } from "@/components/announcements/announcement-popup";
-import { SiteFooter } from "@/components/site-footer";
+import { AppShell } from "@/components/app-shell";
 import "./globals.css";
 
 const siteName = "DongpyeongON";
@@ -45,13 +42,9 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body>
-        <AuthProvider>
-          <OnboardingGuard>
-            {children}
-            <SiteFooter />
-          </OnboardingGuard>
-          <AnnouncementPopup />
-        </AuthProvider>
+        <AppShell waitingRoomEnabled={process.env.WAITING_ROOM_ENABLED === "true"}>
+          {children}
+        </AppShell>
       </body>
     </html>
   );

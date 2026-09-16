@@ -70,13 +70,10 @@ export function NotificationCenter() {
     return () => document.removeEventListener("keydown", close);
   }, [load, open]);
   useEffect(() => {
-    if (!user) {
-      const timer = window.setTimeout(() => setItems([]), 0);
-      return () => window.clearTimeout(timer);
-    }
-    const timer = window.setTimeout(() => void load(), 0);
+    if (user) return;
+    const timer = window.setTimeout(() => setItems([]), 0);
     return () => window.clearTimeout(timer);
-  }, [load, user]);
+  }, [user]);
 
   async function clearAll() {
     if (!user || !items.length) return;
@@ -114,7 +111,8 @@ export function NotificationCenter() {
           <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-[#ff3b30] ring-2 ring-white" />
         )}
       </button>
-      {open && typeof document !== "undefined" &&
+      {open &&
+        typeof document !== "undefined" &&
         createPortal(
           <div className="fixed inset-0 z-[120]">
             <button
@@ -131,8 +129,13 @@ export function NotificationCenter() {
             >
               <div className="flex items-center justify-between border-b border-black/8 bg-white/80 px-5 pb-4 pt-[max(1rem,env(safe-area-inset-top))] backdrop-blur-xl">
                 <div>
-                  <p className="text-xs font-bold text-[#007aff]">DONGPYEONGON</p>
-                  <h2 id="notification-title" className="mt-1 text-2xl font-bold">
+                  <p className="text-xs font-bold text-[#007aff]">
+                    DONGPYEONGON
+                  </p>
+                  <h2
+                    id="notification-title"
+                    className="mt-1 text-2xl font-bold"
+                  >
                     알림 센터
                   </h2>
                 </div>
@@ -158,7 +161,8 @@ export function NotificationCenter() {
                   <div className="space-y-2.5">
                     {items.map((item, index) => {
                       const Icon =
-                        iconByType[item.type as keyof typeof iconByType] ?? Bell;
+                        iconByType[item.type as keyof typeof iconByType] ??
+                        Bell;
                       const content = (
                         <>
                           <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-[#e9f3ff] text-[#007aff]">
