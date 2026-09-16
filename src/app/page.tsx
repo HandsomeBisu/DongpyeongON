@@ -58,6 +58,7 @@ export default function HomePage() {
   const { user, profile, loading, configured } = useAuth();
   const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [postsLoaded, setPostsLoaded] = useState(false);
+  const [postsError, setPostsError] = useState(false);
   const [meal, setMeal] = useState<MealInfo | null>();
   const [mealError, setMealError] = useState("");
   const [timetable, setTimetable] = useState<
@@ -74,8 +75,12 @@ export default function HomePage() {
       (items) => {
         setPosts(items);
         setPostsLoaded(true);
+        setPostsError(false);
       },
-      () => setPostsLoaded(true),
+      () => {
+        setPostsLoaded(true);
+        setPostsError(true);
+      },
     );
   }, [configured, user]);
 
@@ -167,9 +172,11 @@ export default function HomePage() {
     ? "커뮤니티 연결 정보를 확인해 주세요."
     : loading || (user && !postsLoaded)
       ? "게시물을 불러오고 있어요."
-      : !user
-        ? "로그인하면 게시물을 확인할 수 있어요."
-        : "등록된 게시물이 없어요.";
+      : postsError
+        ? "게시물을 불러오지 못했어요. 잠시 후 다시 시도해 주세요."
+        : !user
+          ? "로그인하면 게시물을 확인할 수 있어요."
+          : "등록된 게시물이 없어요.";
   return (
     <div className="min-h-screen max-w-full overflow-x-clip bg-[#f5f5f7]">
       <header className="glass-bar sticky top-0 z-40 max-w-full overflow-hidden">
