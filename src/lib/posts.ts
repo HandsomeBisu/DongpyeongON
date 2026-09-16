@@ -67,16 +67,47 @@ export function subscribeToPosts(
   onError: () => void,
 ) {
   const { db } = getFirebaseClient();
-  return onSnapshot(
+  const mapAndSort = (snapshot: {
+    docs: Array<{ id: string; data: () => DocumentData }>;
+  }) =>
+    onData(
+      snapshot.docs
+        .map(mapPost)
+        .sort(
+          (left, right) =>
+            (right.createdAt?.toMillis() ?? 0) -
+            (left.createdAt?.toMillis() ?? 0),
+        ),
+    );
+  let fallbackUnsubscribe: (() => void) | undefined;
+  const primaryUnsubscribe = onSnapshot(
     query(
       collection(db, "posts"),
       where("status", "==", "published"),
       orderBy("createdAt", "desc"),
       limit(30),
     ),
-    (snapshot) => onData(snapshot.docs.map(mapPost)),
-    onError,
+    mapAndSort,
+    (error) => {
+      if (error.code !== "failed-precondition" || fallbackUnsubscribe) {
+        onError();
+        return;
+      }
+      fallbackUnsubscribe = onSnapshot(
+        query(
+          collection(db, "posts"),
+          where("status", "==", "published"),
+          limit(30),
+        ),
+        mapAndSort,
+        onError,
+      );
+    },
   );
+  return () => {
+    primaryUnsubscribe();
+    fallbackUnsubscribe?.();
+  };
 }
 export function subscribeToPost(
   id: string,
