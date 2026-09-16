@@ -6,7 +6,7 @@ import { SiteFooter } from "@/components/site-footer";
 import "./globals.css";
 
 const siteName = "DongpyeongON";
-const siteDescription = "동평중학교의 이야기를 함께 기록하는 공간";
+const siteDescription = "DPON | 동평중학교 커뮤니티";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://dpon.dpsteam.kr"),
