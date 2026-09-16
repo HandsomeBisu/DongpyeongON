@@ -68,7 +68,7 @@ export function AdminUsers() {
               사용자 권한 관리
             </h1>
             <p className="mt-2 break-keep text-sm leading-6 text-[var(--muted)] sm:text-base">
-              동평ON 구성원의 역할과 접근 권한을 관리합니다.
+              DongpyeongON 구성원의 역할과 접근 권한을 관리합니다.
             </p>
           </div>
           <span className="hidden size-12 place-items-center rounded-2xl bg-[#e5f1ff] text-[#007aff] sm:grid">

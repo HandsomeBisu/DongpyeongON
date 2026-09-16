@@ -52,7 +52,7 @@ export function OnboardingPanel() {
             </div>
           </div>
           <StudentProfileForm
-            submitLabel="동평ON 시작하기"
+            submitLabel="DongpyeongON 시작하기"
             onSubmit={async (value) => {
               await saveStudentProfile(value);
               router.replace("/");

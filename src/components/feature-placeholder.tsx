@@ -21,7 +21,7 @@ export function FeaturePlaceholder({
       <SiteHeader active={active} />
       <main className="page-enter mx-auto max-w-6xl px-5 py-7 sm:py-10">
         <div className="mb-6">
-          <p className="text-sm font-semibold text-[#007aff]">동평ON 서비스</p>
+          <p className="text-sm font-semibold text-[#007aff]">DongpyeongON 서비스</p>
           <h1 className="mt-1 text-[28px] font-bold tracking-[-0.035em] sm:text-3xl">
             {title}
           </h1>

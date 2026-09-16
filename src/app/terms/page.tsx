@@ -2,21 +2,21 @@ import type { Metadata } from "next";
 import { PolicyLayout } from "@/components/legal/policy-layout";
 
 export const metadata: Metadata = {
-  title: "이용약관 | 동평ON",
-  description: "동평ON 서비스 이용약관",
+  title: "이용약관 | DongpyeongON",
+  description: "DongpyeongON 서비스 이용약관",
 };
 
 export default function TermsPage() {
   return (
     <PolicyLayout
       eyebrow="TERMS OF SERVICE"
-      title="동평ON 이용약관"
-      description="본 약관은 DPS Team이 제공하는 동평ON 서비스의 이용 조건과 이용자 및 서비스 제공자의 권리·의무를 정합니다."
+      title="DongpyeongON 이용약관"
+      description="본 약관은 DPS Team이 제공하는 DongpyeongON 서비스의 이용 조건과 이용자 및 서비스 제공자의 권리·의무를 정합니다."
       effectiveDate="2026년 9월 15일"
     >
       <PolicySection title="제1조 (목적)">
         <p>
-          이 약관은 DPS Team(이하 “제공자”)이 운영하는 동평ON(이하 “서비스”)의
+          이 약관은 DPS Team(이하 “제공자”)이 운영하는 DongpyeongON(이하 “서비스”)의
           이용과 관련하여 제공자와 이용자 사이의 권리, 의무, 책임 및 필요한
           사항을 규정함을 목적으로 합니다.
         </p>

@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { PolicyLayout } from "@/components/legal/policy-layout";
 
 export const metadata: Metadata = {
-  title: "개인정보 처리방침 | 동평ON",
-  description: "동평ON 개인정보 처리방침",
+  title: "개인정보 처리방침 | DongpyeongON",
+  description: "DongpyeongON 개인정보 처리방침",
 };
 
 export default function PrivacyPage() {
@@ -11,12 +11,12 @@ export default function PrivacyPage() {
     <PolicyLayout
       eyebrow="PRIVACY POLICY"
       title="개인정보 처리방침"
-      description="DPS Team은 동평ON 이용자의 개인정보를 중요하게 생각하며, 처리 목적과 범위를 투명하게 안내합니다."
+      description="DPS Team은 DongpyeongON 이용자의 개인정보를 중요하게 생각하며, 처리 목적과 범위를 투명하게 안내합니다."
       effectiveDate="2026년 9월 16일"
     >
       <PolicySection title="1. 개인정보 처리방침의 목적">
         <p>
-          DPS Team(이하 “제공자”)은 개인정보 보호법 등 관련 법령에 따라 동평ON
+          DPS Team(이하 “제공자”)은 개인정보 보호법 등 관련 법령에 따라 DongpyeongON
           이용자의 개인정보를 보호하고, 개인정보 처리와 관련한 문의 및 권리
           행사를 신속하게 처리하기 위해 본 개인정보 처리방침을 수립·공개합니다.
         </p>

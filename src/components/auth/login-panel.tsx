@@ -138,7 +138,7 @@ export function LoginPanel() {
               로그인 또는 회원가입
             </h1>
             <p className="mt-2 text-sm leading-6 text-[#77777d]">
-              인증된 학교 계정으로 동평ON을 시작하세요.
+              인증된 학교 계정으로 DongpyeongON을 시작하세요.
             </p>
           </div>
 

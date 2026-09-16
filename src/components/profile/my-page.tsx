@@ -50,7 +50,7 @@ export function MyPage() {
         <div className="mb-7">
           <p className="text-sm font-semibold text-[#007aff]">마이페이지</p>
           <h1 className="mt-1 text-3xl font-bold tracking-[-.04em]">
-            나의 동평ON
+            나의 DongpyeongON
           </h1>
           <p className="mt-2 text-sm text-[var(--muted)]">
             내 계정과 학생 정보를 한곳에서 관리해요.
