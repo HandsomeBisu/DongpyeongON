@@ -5,6 +5,9 @@ export type SiteAnnouncement = {
   showPopup: boolean;
   showBanner: boolean;
   createdAt: string | null;
+  kind?: "site" | "student_council";
+  href?: string;
+  expiresAt?: string | null;
 };
 
 export async function fetchAnnouncements() {

@@ -7,6 +7,7 @@ import {
   Check,
   ChevronDown,
   CircleHelp,
+  Info,
   LoaderCircle,
   Megaphone,
   MessagesSquare,
@@ -24,6 +25,7 @@ import {
   subscribeToPost,
   updatePost,
   type CommunityPost,
+  type PostInput,
 } from "@/lib/posts";
 
 type PostCategory = (typeof POST_CATEGORIES)[number];
@@ -58,6 +60,9 @@ export function PostComposer({ postId }: { postId?: string }) {
   >(postId ? undefined : null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [pendingPost, setPendingPost] = useState<PostInput | null>(null);
+  const [showAsPopup, setShowAsPopup] = useState(false);
+  const [popupDurationDays, setPopupDurationDays] = useState(1);
   const [selectionConfirmation, setSelectionConfirmation] = useState("");
   const confirmationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -87,6 +92,20 @@ export function PostComposer({ postId }: { postId?: string }) {
     [],
   );
 
+  useEffect(() => {
+    if (!pendingPost) return;
+    const previousOverflow = document.body.style.overflow;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setPendingPost(null);
+    };
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [pendingPost]);
+
   function selectBoard(nextBoard: PostCategory) {
     setBoard(nextBoard);
     setError("");
@@ -112,32 +131,57 @@ export function PostComposer({ postId }: { postId?: string }) {
       return;
     }
 
-    setSaving(true);
-    setError("");
-    try {
-      if (postId) {
+    if (postId) {
+      setSaving(true);
+      setError("");
+      try {
         await updatePost(postId, parsed.data);
         router.push(`/post/${postId}`);
-      } else {
-        const response = await authenticatedFetch(user, "/api/posts", {
-          method: "POST",
-          body: JSON.stringify(parsed.data),
-        });
-        const result = (await response.json().catch(() => ({}))) as {
-          postId?: string;
-          error?: string;
-        };
-        if (!response.ok || !result.postId)
-          throw new Error(result.error || "게시물을 등록하지 못했어요.");
-        router.push(`/post/${result.postId}`);
+      } catch (caught) {
+        setError(
+          caught instanceof Error
+            ? caught.message
+            : "게시물을 수정하지 못했어요. 잠시 후 다시 시도해 주세요.",
+        );
+        setSaving(false);
       }
+      return;
+    }
+
+    if (parsed.data.category === "학생회 공지") {
+      setPendingPost(parsed.data);
+      setShowAsPopup(false);
+      setPopupDurationDays(1);
+      return;
+    }
+    await publishPost(parsed.data, null);
+  }
+
+  async function publishPost(input: PostInput, durationDays: number | null) {
+    if (!user) return;
+    setSaving(true);
+    setError("");
+    setPendingPost(null);
+    try {
+      const response = await authenticatedFetch(user, "/api/posts", {
+        method: "POST",
+        body: JSON.stringify({
+          ...input,
+          popupDurationDays: durationDays,
+        }),
+      });
+      const result = (await response.json().catch(() => ({}))) as {
+        postId?: string;
+        error?: string;
+      };
+      if (!response.ok || !result.postId)
+        throw new Error(result.error || "게시물을 등록하지 못했어요.");
+      router.push(`/post/${result.postId}`);
     } catch (caught) {
       setError(
         caught instanceof Error
           ? caught.message
-          : postId
-            ? "게시물을 수정하지 못했어요. 잠시 후 다시 시도해 주세요."
-            : "게시물을 등록하지 못했어요. 잠시 후 다시 시도해 주세요.",
+          : "게시물을 등록하지 못했어요. 잠시 후 다시 시도해 주세요.",
       );
       setSaving(false);
     }
@@ -268,6 +312,130 @@ export function PostComposer({ postId }: { postId?: string }) {
           </div>
         </form>
       </main>
+
+      {pendingPost
+        ? createPortal(
+            <div
+              className="fixed inset-0 z-[110] grid place-items-center overflow-y-auto bg-black/35 p-4 backdrop-blur-sm"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="post-popup-question"
+              onMouseDown={(event) => {
+                if (event.target === event.currentTarget) setPendingPost(null);
+              }}
+            >
+              <section className="ios-pop w-full max-w-lg rounded-[30px] bg-white p-5 shadow-2xl sm:p-7">
+                <div className="flex items-start gap-3">
+                  <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-[#fff3df] text-[#ff9500]">
+                    <Megaphone size={21} />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-[#ff9500]">
+                      학생회 공지 게시 전 확인
+                    </p>
+                    <h2
+                      id="post-popup-question"
+                      className="mt-1 break-keep text-xl font-bold tracking-[-.025em]"
+                    >
+                      이 게시물을 팝업으로 띄우시겠습니까?
+                    </h2>
+                  </div>
+                </div>
+
+                <div className="mt-5 flex gap-3 rounded-2xl bg-[#f5f5f7] p-4 text-sm leading-6 text-[var(--muted)]">
+                  <Info size={18} className="mt-0.5 shrink-0 text-[#007aff]" />
+                  <p className="break-keep">
+                    팝업을 사용하면 사이트에 접속한 학생의 화면 중앙에 이 공지가
+                    표시돼요. 닫은 사용자의 같은 브라우저 세션에는 다시 표시되지
+                    않으며, 게시물을 숨기거나 삭제하면 팝업도 노출되지 않아요.
+                  </p>
+                </div>
+
+                <div className="mt-5 grid grid-cols-2 gap-2 rounded-2xl bg-[#e9e9ed] p-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setShowAsPopup(false)}
+                    className={`min-h-12 rounded-xl px-3 text-sm font-semibold transition ${!showAsPopup ? "bg-white shadow-sm" : "text-[var(--muted)]"}`}
+                  >
+                    게시물만 등록
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowAsPopup(true)}
+                    className={`min-h-12 rounded-xl px-3 text-sm font-semibold transition ${showAsPopup ? "bg-white text-[#ff9500] shadow-sm" : "text-[var(--muted)]"}`}
+                  >
+                    팝업으로 알리기
+                  </button>
+                </div>
+
+                <div
+                  className={`grid transition-[grid-template-rows,opacity,margin] duration-300 ${showAsPopup ? "mt-6 grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}
+                  aria-hidden={!showAsPopup}
+                >
+                  <div className="min-h-0 overflow-hidden">
+                    <div className="flex items-end justify-between gap-4">
+                      <div>
+                        <p className="text-sm font-bold">팝업 지속기간</p>
+                        <p className="mt-1 text-xs text-[var(--muted)]">
+                          손잡이를 끌어 최대 7일까지 설정하세요.
+                        </p>
+                      </div>
+                      <strong className="rounded-full bg-[#fff3df] px-3 py-1.5 text-sm text-[#d97706]">
+                        {popupDurationDays}일
+                      </strong>
+                    </div>
+                    <input
+                      type="range"
+                      min={1}
+                      max={7}
+                      step={1}
+                      value={popupDurationDays}
+                      disabled={!showAsPopup}
+                      aria-label="팝업 지속기간"
+                      aria-valuetext={`${popupDurationDays}일`}
+                      onChange={(event) =>
+                        setPopupDurationDays(Number(event.target.value))
+                      }
+                      style={{
+                        background: `linear-gradient(to right, #ff9500 0%, #ff9500 ${((popupDurationDays - 1) / 6) * 100}%, #e5e5ea ${((popupDurationDays - 1) / 6) * 100}%, #e5e5ea 100%)`,
+                      }}
+                      className="popup-duration-range mt-5 w-full"
+                    />
+                    <div className="mt-2 flex justify-between px-0.5 text-[11px] font-medium text-[var(--muted)]">
+                      <span>1일</span>
+                      <span>3일</span>
+                      <span>5일</span>
+                      <span>7일</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-7 grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPendingPost(null)}
+                    className="h-12 rounded-full bg-[#f2f2f7] text-sm font-semibold"
+                  >
+                    돌아가기
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      void publishPost(
+                        pendingPost,
+                        showAsPopup ? popupDurationDays : null,
+                      )
+                    }
+                    className="h-12 rounded-full bg-[#007aff] text-sm font-bold text-white shadow-md shadow-blue-500/20"
+                  >
+                    결정하고 게시
+                  </button>
+                </div>
+              </section>
+            </div>,
+            document.body,
+          )
+        : null}
 
       {selectionConfirmation
         ? createPortal(

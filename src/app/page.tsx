@@ -224,6 +224,7 @@ export default function HomePage() {
               posts={realtimePosts}
               emptyText={loadingMessage}
               className="min-h-[190px]"
+              highlightCouncil
             />
           </DashboardSection>
 
@@ -273,6 +274,7 @@ export default function HomePage() {
                 posts={latestPosts}
                 emptyText={loadingMessage}
                 className="min-h-[180px]"
+                highlightCouncil
               />
             </div>
           </DashboardSection>
@@ -468,10 +470,12 @@ function PostPanel({
   posts,
   emptyText,
   className = "",
+  highlightCouncil = false,
 }: {
   posts: CommunityPost[];
   emptyText: string;
   className?: string;
+  highlightCouncil?: boolean;
 }) {
   if (!posts.length)
     return (
@@ -486,31 +490,42 @@ function PostPanel({
     <div
       className={`ios-card divide-y divide-[var(--border)] overflow-hidden ${className}`}
     >
-      {posts.map((post) => (
-        <Link
-          key={post.id}
-          href={`/post/${post.id}`}
-          className="group block px-5 py-4 hover:bg-[#f8f8fa] sm:px-6"
-        >
-          <div className="flex min-w-0 flex-wrap items-center gap-2 text-xs text-[var(--muted)]">
-            <span className="rounded-full bg-[#f2f2f7] px-2 py-1 font-semibold">
-              {post.category}
-            </span>
-            <span>{post.authorNickname}</span>
-            <span>·</span>
-            <time>{formatPostDate(post.createdAt)}</time>
-          </div>
-          <h3 className="mt-2 truncate font-bold group-hover:text-[#007aff]">
-            {post.title}
-          </h3>
-          <p className="mt-1 line-clamp-1 text-sm text-[var(--muted)]">
-            {markdownToPlainText(post.content)}
-          </p>
-          <p className="mt-2 text-xs text-[var(--muted)]">
-            좋아요 {post.likeCount} · 댓글 {post.commentCount}
-          </p>
-        </Link>
-      ))}
+      {posts.map((post) => {
+        const emphasized = highlightCouncil && post.category === "학생회 공지";
+        return (
+          <Link
+            key={post.id}
+            href={`/post/${post.id}`}
+            className={`group relative block px-5 py-4 sm:px-6 ${emphasized ? "bg-gradient-to-r from-[#fff3df] via-[#fffaf1] to-white hover:from-[#ffedcc]" : "hover:bg-[#f8f8fa]"}`}
+          >
+            {emphasized && (
+              <span className="absolute inset-y-3 left-0 w-1 rounded-r-full bg-[#ff9500]" />
+            )}
+            <div className="flex min-w-0 flex-wrap items-center gap-2 text-xs text-[var(--muted)]">
+              <span
+                className={`inline-flex items-center gap-1 rounded-full px-2 py-1 font-semibold ${emphasized ? "bg-white/90 text-[#d97706] shadow-sm" : "bg-[#f2f2f7]"}`}
+              >
+                {emphasized && <Megaphone size={12} />}
+                {post.category}
+              </span>
+              <span>{post.authorNickname}</span>
+              <span>·</span>
+              <time>{formatPostDate(post.createdAt)}</time>
+            </div>
+            <h3
+              className={`mt-2 truncate font-bold ${emphasized ? "text-[#7c4a03] group-hover:text-[#b86200]" : "group-hover:text-[#007aff]"}`}
+            >
+              {post.title}
+            </h3>
+            <p className="mt-1 line-clamp-1 text-sm text-[var(--muted)]">
+              {markdownToPlainText(post.content)}
+            </p>
+            <p className="mt-2 text-xs text-[var(--muted)]">
+              좋아요 {post.likeCount} · 댓글 {post.commentCount}
+            </p>
+          </Link>
+        );
+      })}
     </div>
   );
 }

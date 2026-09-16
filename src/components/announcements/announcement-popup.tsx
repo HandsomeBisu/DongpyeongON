@@ -16,12 +16,13 @@ export function AnnouncementPopup() {
   useEffect(() => {
     fetchAnnouncements()
       .then((items) => {
-        const item = items.find((entry) => entry.showPopup);
-        if (
-          item &&
-          sessionStorage.getItem(`dpon:announcement:${item.id}`) !== "seen"
-        )
-          if (pathname !== `/announcement/${item.id}`) setAnnouncement(item);
+        const item = items.find(
+          (entry) =>
+            entry.showPopup &&
+            sessionStorage.getItem(`dpon:announcement:${entry.id}`) !== "seen",
+        );
+        if (item && pathname !== (item.href ?? `/announcement/${item.id}`))
+          setAnnouncement(item);
       })
       .catch(() => undefined);
   }, [pathname]);
@@ -49,7 +50,11 @@ export function AnnouncementPopup() {
             <Megaphone size={21} />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-bold text-[#ff9500]">전체 공지</p>
+            <p className="text-xs font-bold text-[#ff9500]">
+              {announcement.kind === "student_council"
+                ? "학생회 공지"
+                : "전체 공지"}
+            </p>
             <h2
               id="site-announcement-title"
               className="mt-1 break-words text-xl font-bold tracking-tight"
@@ -79,7 +84,7 @@ export function AnnouncementPopup() {
             닫기
           </button>
           <Link
-            href={`/announcement/${announcement.id}`}
+            href={announcement.href ?? `/announcement/${announcement.id}`}
             onClick={close}
             className="inline-flex h-12 items-center justify-center rounded-full bg-[#007aff] text-sm font-bold text-white"
           >

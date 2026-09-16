@@ -1,4 +1,5 @@
-import { FieldValue } from "firebase-admin/firestore";
+import { FieldValue, Timestamp } from "firebase-admin/firestore";
+import { z } from "zod";
 import { apiError, verifyOnboardedApiRequest } from "@/lib/api-auth";
 import {
   COMMUNITY_DISABLED_MESSAGE,
@@ -10,6 +11,10 @@ import { postInputSchema } from "@/lib/posts";
 import { notifyAllUsers, safelyNotify } from "@/lib/notifications";
 
 const MAX_ID_ATTEMPTS = 8;
+const DAY_IN_MS = 24 * 60 * 60 * 1000;
+const createPostSchema = postInputSchema.extend({
+  popupDurationDays: z.number().int().min(1).max(7).nullable().optional(),
+});
 
 export async function POST(request: Request) {
   if (!COMMUNITY_ENABLED)
@@ -20,7 +25,7 @@ export async function POST(request: Request) {
 
   try {
     const { user, profile } = await verifyOnboardedApiRequest(request);
-    const input = postInputSchema.safeParse(
+    const input = createPostSchema.safeParse(
       await request.json().catch(() => null),
     );
     if (!input.success)
@@ -41,15 +46,22 @@ export async function POST(request: Request) {
         { error: "학생회 공지는 학생회 또는 관리자만 작성할 수 있어요." },
         { status: 403 },
       );
+    if (input.data.popupDurationDays && input.data.category !== "학생회 공지")
+      return Response.json(
+        { error: "팝업은 학생회 공지에만 사용할 수 있어요." },
+        { status: 400 },
+      );
     const db = getAdminDb();
+    const { popupDurationDays, ...postInput } = input.data;
 
     for (let attempt = 0; attempt < MAX_ID_ATTEMPTS; attempt += 1) {
       const postId = createPostId();
       const postRef = db.collection("posts").doc(postId);
+      const popupRef = db.collection("postPopups").doc(postId);
       const created = await db.runTransaction(async (transaction) => {
         if ((await transaction.get(postRef)).exists) return false;
         transaction.set(postRef, {
-          ...input.data,
+          ...postInput,
           authorId: user.uid,
           authorNickname:
             typeof profile.name === "string"
@@ -61,16 +73,24 @@ export async function POST(request: Request) {
           createdAt: FieldValue.serverTimestamp(),
           updatedAt: FieldValue.serverTimestamp(),
         });
+        if (popupDurationDays)
+          transaction.set(popupRef, {
+            postId,
+            createdAt: FieldValue.serverTimestamp(),
+            expiresAt: Timestamp.fromMillis(
+              Date.now() + popupDurationDays * DAY_IN_MS,
+            ),
+          });
         return true;
       });
       if (created) {
-        if (input.data.category === "학생회 공지")
+        if (postInput.category === "학생회 공지")
           await safelyNotify(() =>
             notifyAllUsers({
               actorId: user.uid,
               type: "student_council_announcement",
               title: "새로운 학생회 공지가 등록됐어요.",
-              body: input.data.title,
+              body: postInput.title,
               href: `/post/${postId}`,
             }),
           );
