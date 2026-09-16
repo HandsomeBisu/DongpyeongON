@@ -172,6 +172,11 @@ export default function PrivacyPage() {
                 <td>음악 검색과 재생 기능 연동</td>
                 <td>검색어, 곡 식별정보 및 Spotify 연동에 필요한 기술 정보</td>
               </tr>
+              <tr>
+                <td>나이스 교육정보 개방 포털</td>
+                <td>학교 급식과 학급 시간표 조회</td>
+                <td>학교 코드, 조회 일자, 학년 및 반</td>
+              </tr>
             </tbody>
           </table>
         </div>

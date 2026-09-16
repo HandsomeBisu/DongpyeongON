@@ -68,6 +68,11 @@ export function apiError(error: unknown) {
       { error: "Spotify 환경 변수가 설정되지 않았습니다." },
       { status: 503 },
     );
+  if (message === "NEIS_REQUEST_FAILED" || message === "NEIS_INVALID_RESPONSE")
+    return Response.json(
+      { error: "나이스 교육정보를 불러오지 못했어요." },
+      { status: 502 },
+    );
   return Response.json(
     { error: "요청을 처리하지 못했습니다." },
     { status: 500 },

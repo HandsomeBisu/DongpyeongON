@@ -15,7 +15,7 @@ import {
   UserRound,
   X,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { authenticatedFetch } from "@/lib/authenticated-fetch";
 import type { SongRequestRecord, SpotifyTrack } from "@/types/spotify";
@@ -49,7 +49,10 @@ export function MusicDiscovery() {
     limitResetsAt: string;
   } | null>(null);
   const [message, setMessage] = useState("");
+  const [completedQuery, setCompletedQuery] = useState("");
+  const [submittedQuery, setSubmittedQuery] = useState("");
   const latestQuery = useRef("");
+  const resultsSectionRef = useRef<HTMLElement | null>(null);
   const todayRequest =
     requestState && requestState.uid === user?.uid
       ? requestState.request
@@ -124,7 +127,10 @@ export function MusicDiscovery() {
         if (!(error instanceof DOMException && error.name === "AbortError"))
           setMessage("검색 중 연결 문제가 발생했어요.");
       } finally {
-        if (!controller.signal.aborted) setSearching(false);
+        if (!controller.signal.aborted && latestQuery.current === trimmed) {
+          setSearching(false);
+          setCompletedQuery(trimmed);
+        }
       }
     }, 420);
     return () => {
@@ -132,6 +138,40 @@ export function MusicDiscovery() {
       controller.abort();
     };
   }, [query, user]);
+
+  useEffect(() => {
+    if (
+      !submittedQuery ||
+      completedQuery !== submittedQuery ||
+      searching
+    )
+      return;
+    const frame = window.requestAnimationFrame(() => {
+      resultsSectionRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [completedQuery, searching, submittedQuery]);
+
+  function submitSearch(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const trimmed = query.trim();
+    if (!user || trimmed.length < 2) return;
+    const input = event.currentTarget.elements.namedItem("music-search");
+    if (input instanceof HTMLInputElement) input.blur();
+    if (completedQuery === trimmed && !searching) {
+      window.requestAnimationFrame(() => {
+        resultsSectionRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      });
+      return;
+    }
+    setSubmittedQuery(trimmed);
+  }
 
   async function loadMoreResults() {
     const trimmed = query.trim();
@@ -265,11 +305,16 @@ export function MusicDiscovery() {
             <span className="sm:hidden">돌아가기</span>
             <ArrowUpRight size={15} />
           </Link>
-          <label
+          <form
+            onSubmit={submitSearch}
             className={`flex h-11 min-w-0 max-w-xl flex-1 items-center gap-3 rounded-full bg-white px-4 text-black shadow-lg ${!user ? "opacity-60" : ""}`}
           >
             <Search size={20} />
             <input
+              name="music-search"
+              type="search"
+              enterKeyHint="search"
+              aria-label="노래 또는 아티스트 검색"
               value={query}
               onChange={(event) => {
                 const value = event.target.value;
@@ -294,7 +339,7 @@ export function MusicDiscovery() {
             {searching && user && (
               <LoaderCircle size={17} className="animate-spin text-[#555]" />
             )}
-          </label>
+          </form>
           <Link
             href={user ? "/mypage" : "/login"}
             className="ml-auto hidden rounded-full bg-white px-4 py-2 text-xs font-bold text-black hover:scale-105 md:block"
@@ -391,7 +436,7 @@ export function MusicDiscovery() {
               {message}
             </p>
           )}
-          <section className="mt-8">
+          <section ref={resultsSectionRef} className="mt-8 scroll-mt-24">
             <div className="flex items-end justify-between">
               <div>
                 <h2 className="text-2xl font-bold tracking-tight">

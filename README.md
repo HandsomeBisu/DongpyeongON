@@ -44,6 +44,7 @@ EMAIL_VERIFICATION_SECRET=
 SPOTIFY_CLIENT_ID=
 SPOTIFY_CLIENT_SECRET=
 SPOTIFY_REDIRECT_URI=
+NEIS_API_KEY=
 ADMIN_USERS_PASSWORD=
 ADMIN_MUSIC_PASSWORD=
 ADMIN_COMMUNITY_PASSWORD=
@@ -55,6 +56,8 @@ ADMIN_SESSION_SECRET=
 `ADMIN_SESSION_SECRET`은 관리자 영역 세션 쿠키 서명에 사용되며 32자 이상의 무작위 값으로 설정합니다. 관리자 영역 비밀번호는 브라우저 번들이나 저장소에 포함되지 않습니다.
 
 Spotify 검색과 신청 API는 Firebase 학교 계정 인증을 다시 검증합니다. 신청 한도는 한국 시간 오전 7시부터 다음 날 오전 7시까지 사용자당 한 곡이며, 서버에서 중복 문서 생성을 차단합니다. 관리자 웹 플레이어를 사용하려면 Spotify Developer Dashboard에 `SPOTIFY_REDIRECT_URI`를 Redirect URI로 정확히 등록하고 Spotify Premium 계정을 연결해야 합니다. 운영 환경의 예시는 `https://dpon.dpsteam.kr/api/admin/spotify/callback`입니다.
+
+홈의 급식과 시간표는 NEIS 교육정보 Open API를 사용합니다. 동평중학교 급식은 학교 코드로 고정하며, 시간표는 인증된 사용자의 온보딩 학년·반을 서버에서 읽어 조회합니다. 기본 인증키가 서버 코드에 포함되어 있고, 필요하면 `NEIS_API_KEY`로 교체할 수 있습니다.
 
 ## Firebase 규칙과 인덱스 배포
 

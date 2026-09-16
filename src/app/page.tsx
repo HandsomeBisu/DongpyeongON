@@ -22,6 +22,7 @@ import { AuthButton } from "@/components/auth/auth-button";
 import { useAuth } from "@/components/auth/auth-provider";
 import { BrandLogo } from "@/components/brand-logo";
 import { NotificationCenter } from "@/components/notifications/notification-center";
+import { authenticatedFetch } from "@/lib/authenticated-fetch";
 import { markdownToPlainText } from "@/lib/markdown";
 import {
   formatPostDate,
@@ -38,12 +39,34 @@ const mobileLinks = [
   { href: "/music", label: "신청곡", icon: Music2 },
 ];
 
+type MealInfo = {
+  date: string;
+  menu: string[];
+  calories: string | null;
+};
+
+type TimetableInfo = {
+  date: string;
+  grade: number;
+  classNumber: number;
+  periods: Array<{ period: number; subject: string }>;
+};
+
 export default function HomePage() {
   const [range, setRange] = useState("1시간");
   const [openedAt] = useState(() => Date.now());
-  const { user, loading, configured } = useAuth();
+  const { user, profile, loading, configured } = useAuth();
   const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [postsLoaded, setPostsLoaded] = useState(false);
+  const [meal, setMeal] = useState<MealInfo | null>();
+  const [mealError, setMealError] = useState("");
+  const [timetable, setTimetable] = useState<
+    (TimetableInfo & { uid: string }) | null
+  >(null);
+  const [timetableError, setTimetableError] = useState<{
+    uid: string;
+    message: string;
+  } | null>(null);
 
   useEffect(() => {
     if (!configured || !user) return;
@@ -55,6 +78,62 @@ export default function HomePage() {
       () => setPostsLoaded(true),
     );
   }, [configured, user]);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/school/meal")
+      .then(async (response) => {
+        const result = (await response.json().catch(() => ({}))) as {
+          meal?: MealInfo | null;
+          error?: string;
+        };
+        if (!response.ok) throw new Error(result.error);
+        if (active) setMeal(result.meal ?? null);
+      })
+      .catch((caught) => {
+        if (!active) return;
+        setMeal(null);
+        setMealError(
+          caught instanceof Error && caught.message
+            ? caught.message
+            : "급식 정보를 불러오지 못했어요.",
+        );
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    let active = true;
+    authenticatedFetch(user, "/api/school/timetable")
+      .then(async (response) => {
+        const result = (await response.json().catch(() => ({}))) as {
+          timetable?: TimetableInfo;
+          error?: string;
+        };
+        if (!response.ok || !result.timetable)
+          throw new Error(result.error || "시간표를 불러오지 못했어요.");
+        if (active) {
+          setTimetable({ ...result.timetable, uid: user.uid });
+          setTimetableError(null);
+        }
+      })
+      .catch((caught) => {
+        if (!active) return;
+        setTimetableError({
+          uid: user.uid,
+          message:
+            caught instanceof Error && caught.message
+              ? caught.message
+              : "시간표를 불러오지 못했어요.",
+        });
+      });
+    return () => {
+      active = false;
+    };
+  }, [user]);
 
   const latestPosts = posts.slice(0, 5);
   const realtimePosts = [...posts]
@@ -198,29 +277,74 @@ export default function HomePage() {
             title="오늘의 급식"
             badge="점심"
           >
-            <div className="grid min-h-[150px] place-items-center rounded-2xl bg-[#f5f5f7] p-5 text-center text-sm text-[var(--muted)] shadow-inner">
-              오늘의 급식 정보가
-              <br />
-              아직 등록되지 않았어요.
-            </div>
-          </SideCard>
-          <SideCard icon={<Clock3 size={22} />} title="오늘 시간표">
-            <div className="grid min-h-[150px] place-items-center rounded-2xl bg-[#f5f5f7] p-5 text-center">
-              <div>
-                <p className="text-sm leading-6 text-[var(--muted)]">
-                  우리 반 시간표를 확인하려면
-                  <br />
-                  먼저 로그인해 주세요.
-                </p>
-                <Link
-                  href="/login"
-                  className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-[#007aff] px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-blue-500/20 hover:scale-[1.03]"
-                >
-                  <LogIn size={15} />
-                  로그인하기
-                </Link>
+            {meal === undefined ? (
+              <SchoolCardMessage text="오늘의 급식을 불러오고 있어요." />
+            ) : mealError ? (
+              <SchoolCardMessage text={mealError} />
+            ) : meal ? (
+              <div className="overflow-hidden rounded-2xl bg-[#f5f5f7] shadow-inner">
+                <ul className="divide-y divide-black/[.05] px-4 py-2">
+                  {meal.menu.map((item) => (
+                    <li key={item} className="flex items-center gap-2 py-2.5 text-sm">
+                      <span className="size-1.5 shrink-0 rounded-full bg-[#ff9500]" />
+                      <span className="min-w-0 break-keep">{item}</span>
+                    </li>
+                  ))}
+                </ul>
+                {meal.calories && (
+                  <p className="border-t border-black/[.06] px-4 py-2.5 text-right text-[11px] font-medium text-[var(--muted)]">
+                    {meal.calories}
+                  </p>
+                )}
               </div>
-            </div>
+            ) : (
+              <SchoolCardMessage text="오늘은 등록된 점심 급식이 없어요." />
+            )}
+          </SideCard>
+          <SideCard
+            icon={<Clock3 size={22} />}
+            title="오늘 시간표"
+            badge={
+              profile?.grade && profile.classNumber
+                ? `${profile.grade}학년 ${profile.classNumber}반`
+                : undefined
+            }
+          >
+            {!user ? (
+              <div className="grid min-h-[150px] place-items-center rounded-2xl bg-[#f5f5f7] p-5 text-center">
+                <div>
+                  <p className="text-sm leading-6 text-[var(--muted)]">
+                    우리 반 시간표를 확인하려면
+                    <br />
+                    먼저 로그인해 주세요.
+                  </p>
+                  <Link
+                    href="/login"
+                    className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-[#007aff] px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-blue-500/20 hover:scale-[1.03]"
+                  >
+                    <LogIn size={15} />
+                    로그인하기
+                  </Link>
+                </div>
+              </div>
+            ) : timetableError?.uid === user.uid ? (
+              <SchoolCardMessage text={timetableError.message} />
+            ) : timetable?.uid !== user.uid ? (
+              <SchoolCardMessage text="우리 반 시간표를 불러오고 있어요." />
+            ) : timetable.periods.length ? (
+              <ol className="divide-y divide-black/[.05] overflow-hidden rounded-2xl bg-[#f5f5f7] px-3 py-1 shadow-inner">
+                {timetable.periods.map((item) => (
+                  <li key={item.period} className="flex items-center gap-3 px-1 py-2.5">
+                    <span className="grid size-7 shrink-0 place-items-center rounded-full bg-white text-xs font-bold text-[#007aff] shadow-sm">
+                      {item.period}
+                    </span>
+                    <strong className="min-w-0 break-keep text-sm">{item.subject}</strong>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <SchoolCardMessage text="오늘은 등록된 시간표가 없어요." />
+            )}
           </SideCard>
           <SideCard icon={<Megaphone size={22} />} title="학교/학생회 공지">
             {councilPosts.length ? (
@@ -408,5 +532,13 @@ function SideCard({
       </div>
       {children}
     </section>
+  );
+}
+
+function SchoolCardMessage({ text }: { text: string }) {
+  return (
+    <div className="grid min-h-[150px] place-items-center rounded-2xl bg-[#f5f5f7] p-5 text-center text-sm leading-6 text-[var(--muted)] shadow-inner">
+      <p className="break-keep">{text}</p>
+    </div>
   );
 }
