@@ -3,6 +3,7 @@ import { AuthProvider } from "@/components/auth/auth-provider";
 import { OnboardingGuard } from "@/components/auth/onboarding-guard";
 import { AnnouncementPopup } from "@/components/announcements/announcement-popup";
 import { SiteFooter } from "@/components/site-footer";
+import { InAppBrowserGuard } from "@/components/in-app-browser-guard";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -27,6 +28,7 @@ export default function RootLayout({
           </OnboardingGuard>
           <AnnouncementPopup />
         </AuthProvider>
+        <InAppBrowserGuard />
       </body>
     </html>
   );
