@@ -1,16 +1,11 @@
 "use client";
 
 import { useCallback, useEffect } from "react";
-import { usePathname } from "next/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
-import { isWaitingRoomPublicPath } from "@/lib/waiting-room-paths";
 
 export function QueueHeartbeat() {
-  const pathname = usePathname();
   const { user, loading } = useAuth();
-  const active =
-    !loading &&
-    (!isWaitingRoomPublicPath(pathname) || (pathname === "/" && Boolean(user)));
+  const active = !loading && Boolean(user);
   const refresh = useCallback(async () => {
     const response = await fetch("/api/queue", { method: "POST" });
     if (!response.ok) return;
