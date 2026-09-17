@@ -6,10 +6,10 @@ import {
   orderBy,
   query,
   serverTimestamp,
+  Timestamp,
   updateDoc,
   where,
   type DocumentData,
-  type Timestamp,
 } from "firebase/firestore";
 import { z } from "zod";
 import { getFirebaseClient } from "@/lib/firebase/client";
@@ -43,6 +43,27 @@ export interface PostComment {
   authorNickname: string;
   createdAt: Timestamp | null;
   updatedAt: Timestamp | null;
+}
+export type SerializedCommunityPost = Omit<
+  CommunityPost,
+  "createdAt" | "updatedAt"
+> & {
+  createdAt: string | null;
+  updatedAt: string | null;
+};
+
+export function deserializeCommunityPost(
+  post: SerializedCommunityPost,
+): CommunityPost {
+  return {
+    ...post,
+    createdAt: post.createdAt
+      ? Timestamp.fromDate(new Date(post.createdAt))
+      : null,
+    updatedAt: post.updatedAt
+      ? Timestamp.fromDate(new Date(post.updatedAt))
+      : null,
+  };
 }
 function mapPost(snapshot: {
   id: string;

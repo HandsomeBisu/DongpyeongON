@@ -83,7 +83,8 @@ service cloud.firestore {
     }
 
     match /posts/{postId} {
-      allow read: if hasCompletedProfile() && resource.data.status == 'published';
+      allow read: if hasCompletedProfile()
+        && (resource.data.status == 'published' || hasRole('admin'));
       // New posts are created by the trusted server route so six-character IDs
       // can be allocated atomically without exposing overwrite access.
       allow create: if false;
@@ -97,7 +98,9 @@ service cloud.firestore {
       allow delete: if false;
 
       match /comments/{commentId} {
-        allow read: if hasCompletedProfile();
+        allow read: if hasCompletedProfile()
+          && (get(/databases/$(database)/documents/posts/$(postId)).data.status == 'published'
+            || hasRole('admin'));
         allow write: if false;
       }
 
