@@ -10,6 +10,9 @@ export const metadata: Metadata = {
   title: siteName,
   description: siteDescription,
   applicationName: siteName,
+  verification: {
+    google: "3uZKnTVvx3Ph0D6Vo4U28878OPMOsWngJB_aFweUdzc",
+  },
   openGraph: {
     title: siteName,
     description: siteDescription,
