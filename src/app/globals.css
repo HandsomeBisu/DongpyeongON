@@ -177,8 +177,7 @@ button:not(:disabled) {
   animation: selection-success 680ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 .notification-drawer {
-  animation: notification-drawer-enter 480ms
-    cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: notification-drawer-enter 480ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 .notification-item-clearing {
   animation: notification-clear 380ms cubic-bezier(0.4, 0, 1, 1) both;
@@ -410,6 +409,36 @@ button:not(:disabled) {
 }
 .popup-duration-range:focus-visible::-moz-range-thumb {
   outline: 4px solid rgb(255 149 0 / 20%);
+}
+@keyframes skeleton-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+.skeleton {
+  background-image: linear-gradient(
+    100deg,
+    #e5e5ea 20%,
+    #f5f5f7 42%,
+    #ffffff 50%,
+    #f5f5f7 58%,
+    #e5e5ea 80%
+  );
+  background-size: 220% 100%;
+  animation: skeleton-shimmer 1.45s ease-in-out infinite;
+}
+.skeleton-dark {
+  background-image: linear-gradient(
+    100deg,
+    #242424 20%,
+    #343434 42%,
+    #454545 50%,
+    #343434 58%,
+    #242424 80%
+  );
 }
 @media (prefers-reduced-motion: reduce) {
   *,

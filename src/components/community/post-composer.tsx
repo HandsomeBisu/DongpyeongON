@@ -18,6 +18,7 @@ import { createPortal } from "react-dom";
 import { useAuth } from "@/components/auth/auth-provider";
 import { MarkdownEditor } from "@/components/community/markdown-editor";
 import { SiteHeader } from "@/components/site-header";
+import { PageSkeleton } from "@/components/ui/skeleton";
 import { authenticatedFetch } from "@/lib/authenticated-fetch";
 import {
   POST_CATEGORIES,
@@ -191,9 +192,7 @@ export function PostComposer({ postId }: { postId?: string }) {
     return (
       <>
         <SiteHeader active="/#community" />
-        <main className="grid min-h-[70dvh] place-items-center">
-          <span className="size-6 animate-spin rounded-full border-2 border-[#007aff]/25 border-t-[#007aff]" />
-        </main>
+        <PageSkeleton className="max-w-3xl" />
       </>
     );
 

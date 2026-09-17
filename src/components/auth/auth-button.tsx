@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { LogOut } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "./auth-provider";
 
 export function AuthButton() {
@@ -22,6 +23,12 @@ export function AuthButton() {
         로그인
       </Link>
     );
+  if (loading)
+    return (
+      <span role="status" aria-label="계정 정보 로딩 중">
+        <Skeleton className="h-9 w-24 rounded-full" />
+      </span>
+    );
   return (
     <div className="flex min-w-0 flex-col items-end gap-1">
       <div className="flex min-w-0 items-center gap-0.5 sm:gap-1">
@@ -29,9 +36,7 @@ export function AuthButton() {
           href="/mypage"
           className="max-w-24 truncate rounded-full bg-[#007aff] px-3 py-2 text-sm font-semibold text-white shadow-sm hover:scale-[1.03] hover:bg-[#0066d6] sm:max-w-40 sm:px-4"
         >
-          {loading
-            ? "확인 중…"
-            : profile?.name || user?.displayName || "내 계정"}
+          {profile?.name || user?.displayName || "내 계정"}
         </Link>
         <button
           type="button"

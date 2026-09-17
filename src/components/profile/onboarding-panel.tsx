@@ -6,6 +6,7 @@ import { GraduationCap, ShieldCheck } from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
 import { useAuth } from "@/components/auth/auth-provider";
 import { StudentProfileForm } from "@/components/profile/student-profile-form";
+import { PageSkeleton } from "@/components/ui/skeleton";
 
 export function OnboardingPanel() {
   const router = useRouter();
@@ -17,8 +18,8 @@ export function OnboardingPanel() {
 
   if (loading || !user)
     return (
-      <div className="grid min-h-dvh place-items-center bg-[#f5f5f7]">
-        <span className="size-6 animate-spin rounded-full border-2 border-[#007aff]/25 border-t-[#007aff]" />
+      <div className="min-h-dvh bg-[#f5f5f7]">
+        <PageSkeleton className="pt-20" />
       </div>
     );
 

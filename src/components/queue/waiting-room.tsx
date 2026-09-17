@@ -3,6 +3,7 @@
 import { Clock3, Users } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BrandLogo } from "@/components/brand-logo";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type QueueStatus = {
   admitted: boolean;
@@ -76,7 +77,16 @@ export function WaitingRoom() {
           한 번에 100명이 안정적으로 이용할 수 있도록 순서대로 입장하고 있어요.
         </p>
 
-        {status?.error ? (
+        {status === null ? (
+          <div
+            role="status"
+            aria-label="대기열 상태 로딩 중"
+            className="mt-7 grid grid-cols-2 gap-3"
+          >
+            <Skeleton className="h-20 rounded-2xl" />
+            <Skeleton className="h-20 rounded-2xl" />
+          </div>
+        ) : status.error ? (
           <div className="mt-7 rounded-2xl bg-red-50 px-4 py-4 text-sm leading-6 text-red-600">
             {status.error}
           </div>
@@ -103,11 +113,7 @@ export function WaitingRoom() {
 
         <div className="mt-7 flex items-center justify-center gap-2 text-xs text-[var(--muted)]">
           <Clock3 size={14} />
-          <span>
-            {checking
-              ? "입장 가능 여부를 확인하고 있어요."
-              : "5초마다 자동으로 확인해요."}
-          </span>
+          <span>5초마다 자동으로 확인해요.</span>
         </div>
         {status?.error && (
           <button

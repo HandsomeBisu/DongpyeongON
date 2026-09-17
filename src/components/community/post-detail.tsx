@@ -15,6 +15,11 @@ import {
 import { useAuth } from "@/components/auth/auth-provider";
 import { MarkdownContent } from "@/components/community/markdown-content";
 import { SiteHeader } from "@/components/site-header";
+import {
+  DetailSkeleton,
+  ListSkeleton,
+  Skeleton,
+} from "@/components/ui/skeleton";
 import { authenticatedFetch } from "@/lib/authenticated-fetch";
 import {
   archivePost,
@@ -31,6 +36,7 @@ export function PostDetail({ postId }: { postId: string }) {
   const { user, configured } = useAuth();
   const [post, setPost] = useState<CommunityPost | null>();
   const [comments, setComments] = useState<PostComment[]>([]);
+  const [commentsLoaded, setCommentsLoaded] = useState(false);
   const [liked, setLiked] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -46,7 +52,10 @@ export function PostDetail({ postId }: { postId: string }) {
       subscribeToPost(postId, setPost, () =>
         setError("게시물을 불러올 수 없습니다."),
       ),
-      subscribeToComments(postId, setComments),
+      subscribeToComments(postId, (items) => {
+        setComments(items);
+        setCommentsLoaded(true);
+      }),
       subscribeToMyLike(postId, user.uid, setLiked),
     ];
     return () => stops.forEach((stop) => stop());
@@ -170,7 +179,7 @@ export function PostDetail({ postId }: { postId: string }) {
         {!configured || !user ? (
           <Message text="학교 계정으로 로그인해 주세요." />
         ) : post === undefined ? (
-          <Message text="게시물을 불러오고 있어요." />
+          <DetailSkeleton className="mt-10" />
         ) : post === null ? (
           <Message text="존재하지 않거나 삭제된 게시물입니다." />
         ) : (
@@ -222,7 +231,14 @@ export function PostDetail({ postId }: { postId: string }) {
               </div>
             </article>
             <section className="ios-card mt-6 p-5 sm:p-6">
-              <h2 className="text-xl font-bold">댓글 {comments.length}</h2>
+              <h2 className="flex items-center gap-2 text-xl font-bold">
+                댓글
+                {commentsLoaded ? (
+                  comments.length
+                ) : (
+                  <Skeleton className="h-6 w-8 rounded-lg" />
+                )}
+              </h2>
               <form
                 onSubmit={addComment}
                 className="mt-4 flex flex-col gap-3 sm:flex-row"
@@ -241,85 +257,93 @@ export function PostDetail({ postId }: { postId: string }) {
                   등록
                 </button>
               </form>
-              <div className="mt-5 divide-y divide-[var(--border)]">
-                {comments.map((comment) => (
-                  <div key={comment.id} className="py-4">
-                    <div className="flex items-start gap-3">
-                      <div className="min-w-0 flex-1 text-sm font-semibold">
-                        {comment.authorNickname}{" "}
-                        <span className="font-normal text-[var(--muted)]">
-                          · {formatPostDate(comment.createdAt)}
-                          {comment.updatedAt && " · 수정됨"}
-                        </span>
-                      </div>
-                      <div className="flex shrink-0 items-center gap-1">
-                        <Link
-                          href={`/post/${postId}/comment/${comment.id}/report`}
-                          aria-label="댓글 신고"
-                          className="grid size-9 place-items-center rounded-full text-[var(--muted)] hover:bg-red-50 hover:text-red-600"
-                        >
-                          <Flag size={15} />
-                        </Link>
-                        {comment.authorId === user.uid && (
-                          <>
-                            <button
-                              type="button"
-                              aria-label="댓글 수정"
-                              onClick={() => {
-                                setEditingCommentId(comment.id);
-                                setEditingContent(comment.content);
-                              }}
-                              className="grid size-9 place-items-center rounded-full text-[var(--muted)] hover:bg-[#edf5ff] hover:text-[#007aff]"
-                            >
-                              <Pencil size={15} />
-                            </button>
-                            <button
-                              type="button"
-                              aria-label="댓글 삭제"
-                              onClick={() => setDeletingComment(comment)}
-                              className="grid size-9 place-items-center rounded-full text-[var(--muted)] hover:bg-red-50 hover:text-red-600"
-                            >
-                              <Trash2 size={15} />
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                    {editingCommentId === comment.id ? (
-                      <div className="mt-3 rounded-2xl bg-[#f5f5f7] p-3">
-                        <textarea
-                          value={editingContent}
-                          onChange={(event) => setEditingContent(event.target.value)}
-                          maxLength={1000}
-                          rows={4}
-                          autoFocus
-                          className="w-full resize-y bg-transparent leading-6 outline-none"
-                        />
-                        <div className="mt-2 flex justify-end gap-2">
-                          <button
-                            type="button"
-                            disabled={busy}
-                            onClick={() => setEditingCommentId("")}
-                            className="h-9 rounded-full px-4 text-xs font-semibold text-[var(--muted)] hover:bg-black/5"
+              {!commentsLoaded ? (
+                <ListSkeleton rows={2} className="mt-5" />
+              ) : (
+                <div className="mt-5 divide-y divide-[var(--border)]">
+                  {comments.map((comment) => (
+                    <div key={comment.id} className="py-4">
+                      <div className="flex items-start gap-3">
+                        <div className="min-w-0 flex-1 text-sm font-semibold">
+                          {comment.authorNickname}{" "}
+                          <span className="font-normal text-[var(--muted)]">
+                            · {formatPostDate(comment.createdAt)}
+                            {comment.updatedAt && " · 수정됨"}
+                          </span>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-1">
+                          <Link
+                            href={`/post/${postId}/comment/${comment.id}/report`}
+                            aria-label="댓글 신고"
+                            className="grid size-9 place-items-center rounded-full text-[var(--muted)] hover:bg-red-50 hover:text-red-600"
                           >
-                            취소
-                          </button>
-                          <button
-                            type="button"
-                            disabled={busy || !editingContent.trim()}
-                            onClick={() => void updateComment(comment.id)}
-                            className="inline-flex h-9 items-center gap-1.5 rounded-full bg-[#007aff] px-4 text-xs font-bold text-white disabled:opacity-50"
-                          >
-                            <Check size={14} /> 저장
-                          </button>
+                            <Flag size={15} />
+                          </Link>
+                          {comment.authorId === user.uid && (
+                            <>
+                              <button
+                                type="button"
+                                aria-label="댓글 수정"
+                                onClick={() => {
+                                  setEditingCommentId(comment.id);
+                                  setEditingContent(comment.content);
+                                }}
+                                className="grid size-9 place-items-center rounded-full text-[var(--muted)] hover:bg-[#edf5ff] hover:text-[#007aff]"
+                              >
+                                <Pencil size={15} />
+                              </button>
+                              <button
+                                type="button"
+                                aria-label="댓글 삭제"
+                                onClick={() => setDeletingComment(comment)}
+                                className="grid size-9 place-items-center rounded-full text-[var(--muted)] hover:bg-red-50 hover:text-red-600"
+                              >
+                                <Trash2 size={15} />
+                              </button>
+                            </>
+                          )}
                         </div>
                       </div>
-                    ) : (
-                      <p className="mt-2 whitespace-pre-wrap">{comment.content}</p>
-                    )}
-                  </div>
-                ))}
-              </div>
+                      {editingCommentId === comment.id ? (
+                        <div className="mt-3 rounded-2xl bg-[#f5f5f7] p-3">
+                          <textarea
+                            value={editingContent}
+                            onChange={(event) =>
+                              setEditingContent(event.target.value)
+                            }
+                            maxLength={1000}
+                            rows={4}
+                            autoFocus
+                            className="w-full resize-y bg-transparent leading-6 outline-none"
+                          />
+                          <div className="mt-2 flex justify-end gap-2">
+                            <button
+                              type="button"
+                              disabled={busy}
+                              onClick={() => setEditingCommentId("")}
+                              className="h-9 rounded-full px-4 text-xs font-semibold text-[var(--muted)] hover:bg-black/5"
+                            >
+                              취소
+                            </button>
+                            <button
+                              type="button"
+                              disabled={busy || !editingContent.trim()}
+                              onClick={() => void updateComment(comment.id)}
+                              className="inline-flex h-9 items-center gap-1.5 rounded-full bg-[#007aff] px-4 text-xs font-bold text-white disabled:opacity-50"
+                            >
+                              <Check size={14} /> 저장
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="mt-2 whitespace-pre-wrap">
+                          {comment.content}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </section>
           </>
         )}
@@ -423,7 +447,11 @@ export function PostDetail({ postId }: { postId: string }) {
                 onClick={() => void removeComment()}
                 className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-red-600 text-sm font-bold text-white disabled:opacity-50"
               >
-                {busy ? <LoaderCircle size={17} className="animate-spin" /> : <Trash2 size={17} />}
+                {busy ? (
+                  <LoaderCircle size={17} className="animate-spin" />
+                ) : (
+                  <Trash2 size={17} />
+                )}
                 삭제
               </button>
             </div>

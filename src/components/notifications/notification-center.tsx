@@ -15,6 +15,7 @@ import {
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { authenticatedFetch } from "@/lib/authenticated-fetch";
+import { ListSkeleton } from "@/components/ui/skeleton";
 
 type NotificationItem = {
   id: string;
@@ -152,7 +153,9 @@ export function NotificationCenter() {
                 {!user ? (
                   <Empty text="로그인하면 내 소식과 처리 결과를 확인할 수 있어요." />
                 ) : loading ? (
-                  <Empty text="새로운 알림을 확인하고 있어요." />
+                  <div className="overflow-hidden rounded-[24px] border border-black/[.05] bg-white shadow-sm">
+                    <ListSkeleton rows={4} />
+                  </div>
                 ) : error ? (
                   <Empty text={error} />
                 ) : !items.length ? (

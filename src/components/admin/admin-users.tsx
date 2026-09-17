@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowLeft, ShieldCheck, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { SiteHeader } from "@/components/site-header";
+import { TableSkeleton } from "@/components/ui/skeleton";
 import { adminFetch } from "@/lib/admin-fetch";
 import type { UserRole } from "@/types/domain";
 
@@ -16,7 +17,8 @@ type UserRow = {
 
 export function AdminUsers() {
   const [users, setUsers] = useState<UserRow[]>([]);
-  const [message, setMessage] = useState("사용자 목록을 불러오고 있어요.");
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     adminFetch("/api/admin/users")
@@ -32,7 +34,8 @@ export function AdminUsers() {
         setUsers((await response.json()).users);
         setMessage("");
       })
-      .catch(() => setMessage("Firebase Admin 설정을 확인해 주세요."));
+      .catch(() => setMessage("Firebase Admin 설정을 확인해 주세요."))
+      .finally(() => setLoading(false));
   }, []);
 
   async function changeRole(uid: string, role: UserRole) {
@@ -82,50 +85,19 @@ export function AdminUsers() {
                 {message}
               </p>
             )}
-            <div className="divide-y divide-[var(--border)] md:hidden">
-              {users.map((row) => (
-                <article key={row.uid} className="p-5">
-                  <strong className="block">{row.displayName}</strong>
-                  <p className="mt-1 break-all text-sm leading-5 text-[var(--muted)]">
-                    {row.email}
-                  </p>
-                  <label className="mt-4 flex items-center justify-between gap-4 text-sm font-semibold">
-                    역할
-                    <select
-                      value={row.role}
-                      onChange={(event) =>
-                        void changeRole(row.uid, event.target.value as UserRole)
-                      }
-                      className="h-11 min-w-28 rounded-xl border border-[var(--border)] bg-[#f5f5f7] px-3 text-sm"
-                    >
-                      <option value="general">일반</option>
-                      <option value="student_council">학생회</option>
-                      <option value="admin">관리자</option>
-                    </select>
-                  </label>
-                </article>
-              ))}
-            </div>
-            <div className="hidden overflow-x-auto md:block">
-              <table className="w-full text-left">
-                <thead className="bg-[#f5f5f7] text-xs uppercase tracking-wide text-[var(--muted)]">
-                  <tr>
-                    <th className="p-4">이름</th>
-                    <th className="p-4">이메일</th>
-                    <th className="p-4">역할</th>
-                  </tr>
-                </thead>
-                <tbody>
+            {loading ? (
+              <TableSkeleton rows={5} />
+            ) : (
+              <>
+                <div className="divide-y divide-[var(--border)] md:hidden">
                   {users.map((row) => (
-                    <tr
-                      key={row.uid}
-                      className="border-t border-[var(--border)]"
-                    >
-                      <td className="p-4 font-semibold">{row.displayName}</td>
-                      <td className="p-4 text-sm text-[var(--muted)]">
+                    <article key={row.uid} className="p-5">
+                      <strong className="block">{row.displayName}</strong>
+                      <p className="mt-1 break-all text-sm leading-5 text-[var(--muted)]">
                         {row.email}
-                      </td>
-                      <td className="p-4">
+                      </p>
+                      <label className="mt-4 flex items-center justify-between gap-4 text-sm font-semibold">
+                        역할
                         <select
                           value={row.role}
                           onChange={(event) =>
@@ -134,22 +106,64 @@ export function AdminUsers() {
                               event.target.value as UserRole,
                             )
                           }
-                          className="rounded-xl border border-[var(--border)] bg-[#f5f5f7] p-2 text-sm"
+                          className="h-11 min-w-28 rounded-xl border border-[var(--border)] bg-[#f5f5f7] px-3 text-sm"
                         >
                           <option value="general">일반</option>
                           <option value="student_council">학생회</option>
                           <option value="admin">관리자</option>
                         </select>
-                      </td>
-                    </tr>
+                      </label>
+                    </article>
                   ))}
-                </tbody>
-              </table>
-            </div>
-            {users.length === 0 && (
-              <div className="grid min-h-52 place-items-center px-5 text-center text-sm text-[var(--muted)]">
-                표시할 사용자가 없어요.
-              </div>
+                </div>
+                <div className="hidden overflow-x-auto md:block">
+                  <table className="w-full text-left">
+                    <thead className="bg-[#f5f5f7] text-xs uppercase tracking-wide text-[var(--muted)]">
+                      <tr>
+                        <th className="p-4">이름</th>
+                        <th className="p-4">이메일</th>
+                        <th className="p-4">역할</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {users.map((row) => (
+                        <tr
+                          key={row.uid}
+                          className="border-t border-[var(--border)]"
+                        >
+                          <td className="p-4 font-semibold">
+                            {row.displayName}
+                          </td>
+                          <td className="p-4 text-sm text-[var(--muted)]">
+                            {row.email}
+                          </td>
+                          <td className="p-4">
+                            <select
+                              value={row.role}
+                              onChange={(event) =>
+                                void changeRole(
+                                  row.uid,
+                                  event.target.value as UserRole,
+                                )
+                              }
+                              className="rounded-xl border border-[var(--border)] bg-[#f5f5f7] p-2 text-sm"
+                            >
+                              <option value="general">일반</option>
+                              <option value="student_council">학생회</option>
+                              <option value="admin">관리자</option>
+                            </select>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {users.length === 0 && !message && (
+                  <div className="grid min-h-52 place-items-center px-5 text-center text-sm text-[var(--muted)]">
+                    표시할 사용자가 없어요.
+                  </div>
+                )}
+              </>
             )}
           </section>
           <aside className="ios-card h-fit p-5">

@@ -2,8 +2,8 @@
 
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { BrandLogo } from "@/components/brand-logo";
 import { useAuth } from "@/components/auth/auth-provider";
+import { PageSkeleton } from "@/components/ui/skeleton";
 
 export function OnboardingGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -39,14 +39,8 @@ export function OnboardingGuard({ children }: { children: React.ReactNode }) {
     (needsOnboarding && pathname !== "/onboarding" && !policyPage)
   ) {
     return (
-      <div className="grid min-h-dvh place-items-center bg-[#f5f5f7]">
-        <div className="ios-pop flex flex-col items-center gap-4">
-          <BrandLogo />
-          <span className="size-5 animate-spin rounded-full border-2 border-[#007aff]/25 border-t-[#007aff]" />
-          <p className="text-xs text-[var(--muted)]">
-            내 공간을 준비하고 있어요.
-          </p>
-        </div>
+      <div className="min-h-dvh bg-[#f5f5f7]">
+        <PageSkeleton className="pt-20" />
       </div>
     );
   }

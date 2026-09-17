@@ -18,6 +18,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { SiteHeader } from "@/components/site-header";
 import { SpotifyAdminPlayer } from "@/components/admin/spotify-admin-player";
+import { ListSkeleton } from "@/components/ui/skeleton";
 import { adminFetch } from "@/lib/admin-fetch";
 import type { SongRequestRecord, SongRequestStatus } from "@/types/spotify";
 
@@ -33,7 +34,8 @@ const views: Array<{ id: View; label: string }> = [
 export function AdminSongRequests() {
   const [requests, setRequests] = useState<SongRequestRecord[]>([]);
   const [view, setView] = useState<View>("pending");
-  const [message, setMessage] = useState("노래 신청 내역을 불러오고 있어요.");
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState("");
 
   useEffect(() => {
@@ -50,7 +52,8 @@ export function AdminSongRequests() {
         setRequests((await response.json()).requests);
         setMessage("");
       })
-      .catch(() => setMessage("신청 내역을 불러오지 못했어요."));
+      .catch(() => setMessage("신청 내역을 불러오지 못했어요."))
+      .finally(() => setLoading(false));
   }, []);
 
   const counts = useMemo(
@@ -199,19 +202,23 @@ export function AdminSongRequests() {
           </>
         )}
         <section className="ios-card overflow-hidden">
-          <div className="divide-y divide-[var(--border)]">
-            {visibleRequests.map((request, index) => (
-              <SongRow
-                key={request.id}
-                request={request}
-                index={index}
-                view={view}
-                busy={busy === request.id}
-                onStatusChange={changeStatus}
-              />
-            ))}
-            {!visibleRequests.length && <EmptyView view={view} />}
-          </div>
+          {loading ? (
+            <ListSkeleton rows={5} />
+          ) : (
+            <div className="divide-y divide-[var(--border)]">
+              {visibleRequests.map((request, index) => (
+                <SongRow
+                  key={request.id}
+                  request={request}
+                  index={index}
+                  view={view}
+                  busy={busy === request.id}
+                  onStatusChange={changeStatus}
+                />
+              ))}
+              {!visibleRequests.length && <EmptyView view={view} />}
+            </div>
+          )}
         </section>
       </main>
     </>

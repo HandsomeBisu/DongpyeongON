@@ -22,6 +22,7 @@ import { AuthButton } from "@/components/auth/auth-button";
 import { useAuth } from "@/components/auth/auth-provider";
 import { BrandLogo } from "@/components/brand-logo";
 import { NotificationCenter } from "@/components/notifications/notification-center";
+import { ListSkeleton, Skeleton } from "@/components/ui/skeleton";
 import { authenticatedFetch } from "@/lib/authenticated-fetch";
 import { markdownToPlainText } from "@/lib/markdown";
 import {
@@ -168,15 +169,14 @@ export default function HomePage() {
   const councilPosts = posts
     .filter((post) => post.category === "학생회 공지")
     .slice(0, 3);
+  const postsLoading = configured && (loading || Boolean(user && !postsLoaded));
   const loadingMessage = !configured
     ? "커뮤니티 연결 정보를 확인해 주세요."
-    : loading || (user && !postsLoaded)
-      ? "게시물을 불러오고 있어요."
-      : postsError
-        ? "게시물을 불러오지 못했어요. 잠시 후 다시 시도해 주세요."
-        : !user
-          ? "로그인하면 게시물을 확인할 수 있어요."
-          : "등록된 게시물이 없어요.";
+    : postsError
+      ? "게시물을 불러오지 못했어요. 잠시 후 다시 시도해 주세요."
+      : !user
+        ? "로그인하면 게시물을 확인할 수 있어요."
+        : "등록된 게시물이 없어요.";
   return (
     <div className="min-h-screen max-w-full overflow-x-clip bg-[#f5f5f7]">
       <header className="glass-bar sticky top-0 z-40 max-w-full overflow-hidden">
@@ -263,6 +263,7 @@ export default function HomePage() {
               emptyText={loadingMessage}
               className="min-h-[190px]"
               highlightCouncil
+              loading={postsLoading}
             />
           </DashboardSection>
 
@@ -292,6 +293,7 @@ export default function HomePage() {
                   : loadingMessage
               }
               className="min-h-[260px]"
+              loading={postsLoading}
             />
           </DashboardSection>
 
@@ -313,6 +315,7 @@ export default function HomePage() {
                 emptyText={loadingMessage}
                 className="min-h-[180px]"
                 highlightCouncil
+                loading={postsLoading}
               />
             </div>
           </DashboardSection>
@@ -325,7 +328,7 @@ export default function HomePage() {
             badge="점심"
           >
             {meal === undefined ? (
-              <SchoolCardMessage text="오늘의 급식을 불러오고 있어요." />
+              <SchoolCardSkeleton rows={4} />
             ) : mealError ? (
               <SchoolCardMessage text={mealError} />
             ) : meal ? (
@@ -380,7 +383,7 @@ export default function HomePage() {
             ) : timetableError?.uid === user.uid ? (
               <SchoolCardMessage text={timetableError.message} />
             ) : timetable?.uid !== user.uid ? (
-              <SchoolCardMessage text="우리 반 시간표를 불러오고 있어요." />
+              <SchoolCardSkeleton rows={6} />
             ) : timetable.periods.length ? (
               <ol className="divide-y divide-black/[.05] overflow-hidden rounded-2xl bg-[#f5f5f7] px-3 py-1 shadow-inner">
                 {timetable.periods.map((item) => (
@@ -517,12 +520,20 @@ function PostPanel({
   emptyText,
   className = "",
   highlightCouncil = false,
+  loading = false,
 }: {
   posts: CommunityPost[];
   emptyText: string;
   className?: string;
   highlightCouncil?: boolean;
+  loading?: boolean;
 }) {
+  if (loading)
+    return (
+      <div className={`ios-card overflow-hidden ${className}`}>
+        <ListSkeleton rows={3} />
+      </div>
+    );
   if (!posts.length)
     return (
       <EmptyPanel
@@ -607,6 +618,26 @@ function SchoolCardMessage({ text }: { text: string }) {
   return (
     <div className="grid min-h-[150px] place-items-center rounded-2xl bg-[#f5f5f7] p-5 text-center text-sm leading-6 text-[var(--muted)] shadow-inner">
       <p className="break-keep">{text}</p>
+    </div>
+  );
+}
+
+function SchoolCardSkeleton({ rows }: { rows: number }) {
+  return (
+    <div
+      role="status"
+      aria-label="학교 정보 로딩 중"
+      className="space-y-3 rounded-2xl bg-[#f5f5f7] p-4 shadow-inner"
+    >
+      {Array.from({ length: rows }, (_, index) => (
+        <div key={index} className="flex items-center gap-3 py-1">
+          <Skeleton className="size-7 shrink-0 rounded-full bg-white" />
+          <Skeleton
+            className={`h-4 rounded-full ${index % 3 === 2 ? "w-2/3" : "w-4/5"}`}
+          />
+        </div>
+      ))}
+      <span className="sr-only">학교 정보를 불러오는 중입니다.</span>
     </div>
   );
 }

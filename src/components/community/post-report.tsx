@@ -5,6 +5,7 @@ import { AlertTriangle, ArrowLeft, Check, LoaderCircle } from "lucide-react";
 import { FormEvent, useEffect, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { SiteHeader } from "@/components/site-header";
+import { DetailSkeleton } from "@/components/ui/skeleton";
 import { authenticatedFetch } from "@/lib/authenticated-fetch";
 import { subscribeToPost, type CommunityPost } from "@/lib/posts";
 
@@ -77,7 +78,7 @@ export function PostReport({ postId }: { postId: string }) {
         {!configured || !user ? (
           <Message text="학교 계정으로 로그인해 주세요." />
         ) : post === undefined ? (
-          <Message text="게시물을 불러오고 있어요." />
+          <DetailSkeleton className="mt-10" />
         ) : !post ? (
           <Message text="존재하지 않거나 삭제된 게시물이에요." />
         ) : completed ? (

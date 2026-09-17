@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
+import { ListSkeleton } from "@/components/ui/skeleton";
 import { authenticatedFetch } from "@/lib/authenticated-fetch";
 import type { SongRequestRecord, SpotifyTrack } from "@/types/spotify";
 
@@ -140,11 +141,7 @@ export function MusicDiscovery() {
   }, [query, user]);
 
   useEffect(() => {
-    if (
-      !submittedQuery ||
-      completedQuery !== submittedQuery ||
-      searching
-    )
+    if (!submittedQuery || completedQuery !== submittedQuery || searching)
       return;
     const frame = window.requestAnimationFrame(() => {
       resultsSectionRef.current?.scrollIntoView({
@@ -336,9 +333,6 @@ export function MusicDiscovery() {
               }
               className="min-w-0 flex-1 bg-transparent text-sm font-medium outline-none placeholder:text-[#6a6a6a]"
             />
-            {searching && user && (
-              <LoaderCircle size={17} className="animate-spin text-[#555]" />
-            )}
           </form>
           <Link
             href={user ? "/mypage" : "/login"}
@@ -476,8 +470,8 @@ export function MusicDiscovery() {
                   description="위 검색창에서 곡명 또는 아티스트를 검색해 보세요."
                 />
               ) : searching ? (
-                <div className="grid min-h-52 place-items-center">
-                  <LoaderCircle className="size-7 animate-spin text-[#1ed760]" />
+                <div className="overflow-hidden rounded-2xl bg-white/[.035]">
+                  <ListSkeleton rows={5} dark />
                 </div>
               ) : results.length ? (
                 <div className="space-y-1">
@@ -589,22 +583,24 @@ export function MusicDiscovery() {
                       </article>
                     );
                   })}
-                  {hasMoreResults && (
+                  {loadingMore && (
+                    <div className="mt-3 overflow-hidden rounded-2xl bg-white/[.035]">
+                      <ListSkeleton rows={3} dark />
+                    </div>
+                  )}
+                  {hasMoreResults && !loadingMore && (
                     <div className="pt-5 text-center">
                       <button
                         type="button"
-                        disabled={loadingMore}
                         onClick={() => void loadMoreResults()}
-                        className="rounded-full border border-white/20 bg-white/8 px-6 py-2.5 text-sm font-bold text-white transition hover:scale-[1.02] hover:border-white/35 hover:bg-white/12 disabled:cursor-not-allowed disabled:opacity-55"
+                        className="rounded-full border border-white/20 bg-white/8 px-6 py-2.5 text-sm font-bold text-white transition hover:scale-[1.02] hover:border-white/35 hover:bg-white/12"
                       >
-                        {loadingMore ? (
-                          <span className="inline-flex items-center gap-2">
-                            <LoaderCircle size={16} className="animate-spin" />
-                            불러오는 중
-                          </span>
-                        ) : (
-                          `검색 결과 ${Math.min(SEARCH_PAGE_SIZE, Math.max(totalResults - results.length, 1))}개 더 보기`
+                        검색 결과{" "}
+                        {Math.min(
+                          SEARCH_PAGE_SIZE,
+                          Math.max(totalResults - results.length, 1),
                         )}
+                        개 더 보기
                       </button>
                     </div>
                   )}

@@ -11,6 +11,7 @@ import {
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { markdownToPlainText } from "@/lib/markdown";
+import { ListSkeleton } from "@/components/ui/skeleton";
 import {
   POST_CATEGORIES,
   formatPostDate,
@@ -64,11 +65,10 @@ export function HomeCommunity() {
   }, [configured, user]);
 
   const visiblePosts = posts.filter((post) => post.category === board);
+  const isLoading = authLoading || Boolean(user && loadedFor !== user.uid);
   let emptyMessage = "";
   if (!configured) emptyMessage = "커뮤니티 연결 정보를 확인해 주세요.";
-  else if (authLoading) emptyMessage = "게시물을 불러오고 있어요.";
   else if (!user) emptyMessage = "로그인하면 동평의 이야기를 볼 수 있어요.";
-  else if (loadedFor !== user.uid) emptyMessage = "게시물을 불러오고 있어요.";
   else if (!visiblePosts.length)
     emptyMessage = `${board}의 첫 글을 기다리고 있어요.`;
 
@@ -114,7 +114,9 @@ export function HomeCommunity() {
           </p>
         )}
         <div className="ios-card overflow-hidden">
-          {emptyMessage ? (
+          {isLoading ? (
+            <ListSkeleton rows={4} />
+          ) : emptyMessage ? (
             <div className="grid min-h-72 place-items-center p-8 text-center">
               <div>
                 <span

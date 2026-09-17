@@ -12,6 +12,7 @@ import {
 import { useAuth } from "@/components/auth/auth-provider";
 import { StudentProfileForm } from "@/components/profile/student-profile-form";
 import { SiteHeader } from "@/components/site-header";
+import { PageSkeleton } from "@/components/ui/skeleton";
 
 export function MyPage() {
   const router = useRouter();
@@ -34,9 +35,7 @@ export function MyPage() {
     return (
       <>
         <SiteHeader />
-        <main className="grid min-h-[70vh] place-items-center">
-          <span className="size-6 animate-spin rounded-full border-2 border-[#007aff]/25 border-t-[#007aff]" />
-        </main>
+        <PageSkeleton />
       </>
     );
   }

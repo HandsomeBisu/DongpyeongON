@@ -5,6 +5,7 @@ import { ArrowLeft, Megaphone } from "lucide-react";
 import { useEffect, useState } from "react";
 import { MarkdownContent } from "@/components/community/markdown-content";
 import { SiteHeader } from "@/components/site-header";
+import { DetailSkeleton } from "@/components/ui/skeleton";
 import type { SiteAnnouncement } from "@/lib/announcements";
 
 export function AnnouncementDetail({
@@ -50,7 +51,7 @@ export function AnnouncementDetail({
           홈으로 돌아가기
         </Link>
         {announcement === undefined ? (
-          <Message text="공지사항을 불러오고 있어요." />
+          <DetailSkeleton className="mt-5" />
         ) : !announcement ? (
           <Message text={error || "존재하지 않는 공지사항이에요."} />
         ) : (
