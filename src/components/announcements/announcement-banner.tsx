@@ -13,9 +13,10 @@ export function AnnouncementBanner() {
 
   useEffect(() => {
     fetchAnnouncements()
-      .then((items) =>
-        setAnnouncements(items.filter((item) => item.showBanner)),
-      )
+      .then((items) => {
+        setIndex(0);
+        setAnnouncements(items.filter((item) => item.showBanner));
+      })
       .catch(() => undefined);
   }, []);
 

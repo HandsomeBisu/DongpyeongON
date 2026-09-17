@@ -11,7 +11,7 @@ export async function GET() {
       db
         .collection("announcements")
         .orderBy("createdAt", "desc")
-        .limit(20)
+        .limit(100)
         .get(),
       db.collection("postPopups").where("expiresAt", ">", now).limit(20).get(),
     ]);
@@ -84,7 +84,7 @@ export async function GET() {
       { announcements },
       {
         headers: {
-          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+          "Cache-Control": "no-store, max-age=0",
         },
       },
     );

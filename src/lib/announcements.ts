@@ -13,18 +13,18 @@ export type SiteAnnouncement = {
 let pendingRequest: Promise<SiteAnnouncement[]> | null = null;
 
 export function fetchAnnouncements() {
-  if (!pendingRequest) {
-    pendingRequest = fetch("/api/announcements")
-      .then(async (response) => {
-        if (!response.ok) throw new Error("ANNOUNCEMENTS_FETCH_FAILED");
-        return (
-          (await response.json()) as { announcements: SiteAnnouncement[] }
-        ).announcements;
-      })
-      .catch((error) => {
-        pendingRequest = null;
-        throw error;
-      });
-  }
+  if (pendingRequest) return pendingRequest;
+
+  const request = fetch("/api/announcements", { cache: "no-store" }).then(
+    async (response) => {
+      if (!response.ok) throw new Error("ANNOUNCEMENTS_FETCH_FAILED");
+      return (
+        (await response.json()) as { announcements: SiteAnnouncement[] }
+      ).announcements;
+    },
+  );
+  pendingRequest = request.finally(() => {
+    pendingRequest = null;
+  });
   return pendingRequest;
 }
