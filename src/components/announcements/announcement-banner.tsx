@@ -28,7 +28,7 @@ export function AnnouncementBanner() {
       transitionTimer = window.setTimeout(() => {
         setIndex((current) => (current + 1) % announcements.length);
         setSliding(false);
-      }, 480);
+      }, 560);
     }, 3_000);
     return () => {
       window.clearInterval(interval);
@@ -46,15 +46,13 @@ export function AnnouncementBanner() {
         <div className="relative h-7 min-w-0 flex-1 overflow-hidden">
           <BannerLink
             announcement={current}
-            className={sliding ? "translate-y-full opacity-0" : "translate-y-0"}
+            className={sliding ? "announcement-title-out" : ""}
           />
           {announcements.length > 1 && (
             <BannerLink
               announcement={next}
               className={
-                sliding
-                  ? "translate-y-0 opacity-100"
-                  : "-translate-y-full opacity-0"
+                sliding ? "announcement-title-in" : "announcement-title-next"
               }
             />
           )}
@@ -87,7 +85,7 @@ function BannerLink({
   return (
     <Link
       href={announcement.href ?? `/announcement/${announcement.id}`}
-      className={`absolute inset-0 flex min-w-0 items-center rounded-lg transition-all duration-500 ease-[cubic-bezier(.22,1,.36,1)] hover:opacity-75 ${className}`}
+      className={`absolute inset-0 flex min-w-0 items-center rounded-lg will-change-transform hover:opacity-75 ${className}`}
     >
       <strong className="block truncate">{announcement.title}</strong>
     </Link>
