@@ -22,9 +22,9 @@ export function AppShell({
       {waitingRoomEnabled && <QueueHeartbeat />}
       <OnboardingGuard>
         {children}
-        <SiteFooter />
+        {pathname !== "/suspended" && <SiteFooter />}
+        <AnnouncementPopup />
       </OnboardingGuard>
-      <AnnouncementPopup />
     </AuthProvider>
   );
 }

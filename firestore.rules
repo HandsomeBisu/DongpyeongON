@@ -17,8 +17,16 @@ service cloud.firestore {
       return isSchoolAccount() && request.auth.uid == userId;
     }
 
+    function accountIsActive() {
+      let profile = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      return !('suspension' in profile)
+        || profile.suspension.endsAt <= request.time;
+    }
+
     function hasRole(role) {
-      return isSchoolAccount() && request.auth.token.role == role;
+      return isSchoolAccount()
+        && accountIsActive()
+        && request.auth.token.role == role;
     }
 
     function isStaff() {
@@ -27,6 +35,7 @@ service cloud.firestore {
 
     function hasCompletedProfile() {
       return isSchoolAccount()
+        && accountIsActive()
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.onboardingCompleted == true;
     }
 
@@ -60,6 +69,7 @@ service cloud.firestore {
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.email == request.auth.token.email;
       allow update: if isOwner(userId)
+        && accountIsActive()
         && validStudentProfile()
         && request.resource.data.diff(resource.data).affectedKeys()
           .hasOnly(['displayName', 'photoURL', 'name', 'grade', 'classNumber', 'studentNumber', 'onboardingCompleted', 'updatedAt']);

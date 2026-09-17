@@ -1,4 +1,8 @@
 import { z } from "zod";
+import {
+  parseAccountSuspension,
+  type AccountSuspension,
+} from "@/lib/account-suspension";
 import { normalizeUserRole, type UserRole } from "@/types/domain";
 
 export const studentProfileSchema = z.object({
@@ -25,6 +29,7 @@ export type UserProfile = {
   classNumber: number | null;
   studentNumber: number | null;
   onboardingCompleted: boolean;
+  suspension: AccountSuspension | null;
 };
 
 export function profileFromData(
@@ -60,5 +65,6 @@ export function profileFromData(
     classNumber: parsed.success ? parsed.data.classNumber : null,
     studentNumber: parsed.success ? parsed.data.studentNumber : null,
     onboardingCompleted: data.onboardingCompleted === true && parsed.success,
+    suspension: parseAccountSuspension(data.suspension),
   };
 }

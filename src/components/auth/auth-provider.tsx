@@ -10,7 +10,13 @@ import {
   updateProfile as updateFirebaseProfile,
   type User,
 } from "firebase/auth";
-import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  onSnapshot,
+  serverTimestamp,
+  setDoc,
+} from "firebase/firestore";
 import {
   createContext,
   useCallback,
@@ -125,7 +131,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!isFirebaseConfigured) return;
     const { auth } = getFirebaseClient();
-    return onAuthStateChanged(auth, async (next) => {
+    let stopProfile: (() => void) | undefined;
+    let active = true;
+    let generation = 0;
+    const stopAuth = onAuthStateChanged(auth, async (next) => {
+      const currentGeneration = ++generation;
+      stopProfile?.();
+      stopProfile = undefined;
+      if (next) setLoading(true);
       try {
         if (next && (!next.email || !isSchoolEmail(next.email))) {
           await firebaseSignOut(auth);
@@ -141,16 +154,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setProfile(null);
           return;
         }
-        if (next) setProfile(await ensureProfile(next));
-        else setProfile(null);
-        setUser(next);
+        if (next) {
+          setProfile(null);
+          await ensureProfile(next);
+          if (!active || currentGeneration !== generation) return;
+          setUser(next);
+          const { db } = getFirebaseClient();
+          stopProfile = onSnapshot(
+            doc(db, "users", next.uid),
+            (snapshot) => {
+              if (
+                !active ||
+                currentGeneration !== generation ||
+                !snapshot.exists()
+              )
+                return;
+              setProfile(profileFromData(next, snapshot.data()));
+              setLoading(false);
+            },
+            () => {
+              if (!active || currentGeneration !== generation) return;
+              setError("사용자 정보를 실시간으로 불러오지 못했습니다.");
+              setLoading(false);
+            },
+          );
+          return;
+        }
+        setProfile(null);
+        setUser(null);
       } catch {
         setError("사용자 정보를 불러오지 못했습니다.");
         setUser(null);
       } finally {
-        setLoading(false);
+        if (!next && active) setLoading(false);
       }
     });
+    return () => {
+      active = false;
+      generation += 1;
+      stopProfile?.();
+      stopAuth();
+    };
   }, []);
 
   const signIn = useCallback(async () => {

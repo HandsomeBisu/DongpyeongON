@@ -2,6 +2,10 @@ import "server-only";
 
 import { getAdminAuth, getAdminDb } from "@/lib/firebase/admin";
 import { isSchoolEmail } from "@/lib/firebase/school-email";
+import {
+  isAccountSuspended,
+  parseAccountSuspension,
+} from "@/lib/account-suspension";
 
 export async function verifyApiRequest(request: Request) {
   const header = request.headers.get("authorization");
@@ -21,6 +25,8 @@ export async function verifyOnboardedApiRequest(request: Request) {
   const profile = await getAdminDb().collection("users").doc(user.uid).get();
   if (!profile.exists || profile.data()?.onboardingCompleted !== true)
     throw new Error("FORBIDDEN");
+  if (isAccountSuspended(parseAccountSuspension(profile.data()?.suspension)))
+    throw new Error("ACCOUNT_SUSPENDED");
   return { user, profile: profile.data() ?? {} };
 }
 
@@ -30,6 +36,11 @@ export function apiError(error: unknown) {
     return Response.json({ error: "로그인이 필요합니다." }, { status: 401 });
   if (message === "FORBIDDEN")
     return Response.json({ error: "권한이 없습니다." }, { status: 403 });
+  if (message === "ACCOUNT_SUSPENDED")
+    return Response.json(
+      { error: "계정 이용이 일시적으로 제한되었습니다.", code: message },
+      { status: 403 },
+    );
   if (message === "NOT_FOUND")
     return Response.json(
       { error: "게시물을 찾을 수 없습니다." },
