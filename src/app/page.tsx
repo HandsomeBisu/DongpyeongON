@@ -34,9 +34,13 @@ import {
 
 const ranges = ["1시간", "1일", "7일", "30일"];
 
+function popularityScore(post: CommunityPost) {
+  return post.likeCount * 5 + post.commentCount * 3 + post.viewCount;
+}
+
 const mobileLinks = [
   { href: "/", label: "홈", icon: Home },
-  { href: "/#community", label: "커뮤니티", icon: MessageCircle },
+  { href: "/community", label: "커뮤니티", icon: MessageCircle },
   { href: "/suggestions", label: "신문고", icon: Inbox },
   { href: "/music", label: "신청곡", icon: Music2 },
 ];
@@ -146,9 +150,7 @@ export default function HomePage() {
   const realtimePosts = [...posts]
     .sort(
       (left, right) =>
-        right.likeCount * 2 +
-        right.commentCount -
-        (left.likeCount * 2 + left.commentCount),
+        popularityScore(right) - popularityScore(left),
     )
     .slice(0, 3);
   const rangeHours: Record<string, number> = {
@@ -162,9 +164,7 @@ export default function HomePage() {
     .filter((post) => !post.createdAt || post.createdAt.toMillis() >= cutoff)
     .sort(
       (left, right) =>
-        right.likeCount * 2 +
-        right.commentCount -
-        (left.likeCount * 2 + left.commentCount),
+        popularityScore(right) - popularityScore(left),
     )
     .slice(0, 5);
   const councilPosts = posts
@@ -303,7 +303,7 @@ export default function HomePage() {
             title="최신 게시글"
             trailing={
               <Link
-                href="/#community"
+                href="/community"
                 className="text-sm font-medium text-[#007aff]"
               >
                 전체 보기
@@ -566,10 +566,7 @@ function PostPanel({
                 {emphasized && <Megaphone size={12} />}
                 {post.category}
               </span>
-              <VerifiedName
-                name={post.authorNickname}
-                userId={post.authorId}
-              />
+              <VerifiedName name={post.authorNickname} userId={post.authorId} />
               <span>·</span>
               <time>{formatPostDate(post.createdAt)}</time>
             </div>
@@ -582,7 +579,8 @@ function PostPanel({
               {markdownToPlainText(post.content)}
             </p>
             <p className="mt-2 text-xs text-[var(--muted)]">
-              좋아요 {post.likeCount} · 댓글 {post.commentCount}
+              조회 {post.viewCount} · 좋아요 {post.likeCount} · 댓글{" "}
+              {post.commentCount}
             </p>
           </Link>
         );

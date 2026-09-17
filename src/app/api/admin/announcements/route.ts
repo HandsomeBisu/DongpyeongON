@@ -18,7 +18,7 @@ export async function GET(request: Request) {
     const snapshot = await getAdminDb()
       .collection("announcements")
       .orderBy("createdAt", "desc")
-      .limit(30)
+      .limit(100)
       .get();
     return Response.json({
       announcements: snapshot.docs.map((document) => {
@@ -54,24 +54,12 @@ export async function POST(request: Request) {
       );
 
     const db = getAdminDb();
-    const recent = await db.collection("announcements").limit(100).get();
-    const batch = db.batch();
-    for (const document of recent.docs) {
-      const data = document.data();
-      const update: Record<string, boolean> = {};
-      if (parsed.data.showPopup && data.showPopup === true)
-        update.showPopup = false;
-      if (parsed.data.showBanner && data.showBanner === true)
-        update.showBanner = false;
-      if (Object.keys(update).length) batch.update(document.ref, update);
-    }
     const ref = db.collection("announcements").doc();
-    batch.set(ref, {
+    await ref.set({
       ...parsed.data,
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
     });
-    await batch.commit();
     await safelyNotify(() =>
       notifyAllUsers({
         type: "site_announcement",

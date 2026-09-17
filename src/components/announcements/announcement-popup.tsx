@@ -9,31 +9,38 @@ import { fetchAnnouncements, type SiteAnnouncement } from "@/lib/announcements";
 
 export function AnnouncementPopup() {
   const pathname = usePathname();
-  const [announcement, setAnnouncement] = useState<SiteAnnouncement | null>(
-    null,
-  );
+  const [queue, setQueue] = useState<SiteAnnouncement[]>([]);
+  const [total, setTotal] = useState(0);
 
   useEffect(() => {
     fetchAnnouncements()
       .then((items) => {
-        const item = items.find(
-          (entry) =>
-            entry.showPopup &&
-            sessionStorage.getItem(`dpon:announcement:${entry.id}`) !== "seen",
-        );
-        if (item && pathname !== (item.href ?? `/announcement/${item.id}`))
-          setAnnouncement(item);
+        const pending = items
+          .filter(
+            (entry) =>
+              entry.showPopup &&
+              pathname !== (entry.href ?? `/announcement/${entry.id}`) &&
+              sessionStorage.getItem(`dpon:announcement:${entry.id}`) !==
+                "seen",
+          )
+          .slice(0, 2);
+        setQueue(pending);
+        setTotal(pending.length);
       })
       .catch(() => undefined);
   }, [pathname]);
 
+  const announcement = queue[0];
+
   function close() {
-    if (announcement)
-      sessionStorage.setItem(`dpon:announcement:${announcement.id}`, "seen");
-    setAnnouncement(null);
+    if (!announcement) return;
+    sessionStorage.setItem(`dpon:announcement:${announcement.id}`, "seen");
+    setQueue((items) => items.slice(1));
   }
 
   if (!announcement) return null;
+  const currentNumber = total - queue.length + 1;
+
   return (
     <div
       className="fixed inset-0 z-[100] grid place-items-center bg-black/30 p-5 backdrop-blur-sm"
@@ -44,17 +51,27 @@ export function AnnouncementPopup() {
         if (event.target === event.currentTarget) close();
       }}
     >
-      <section className="ios-pop w-full max-w-lg rounded-[28px] bg-white p-6 shadow-2xl sm:p-8">
+      <section
+        key={announcement.id}
+        className="ios-pop w-full max-w-lg rounded-[28px] bg-white p-6 shadow-2xl sm:p-8"
+      >
         <div className="flex items-start gap-4">
           <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-[#fff3df] text-[#ff9500]">
             <Megaphone size={21} />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-bold text-[#ff9500]">
-              {announcement.kind === "student_council"
-                ? "학생회 공지"
-                : "전체 공지"}
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="text-xs font-bold text-[#ff9500]">
+                {announcement.kind === "student_council"
+                  ? "학생회 공지"
+                  : "전체 공지"}
+              </p>
+              {total > 1 && (
+                <span className="rounded-full bg-[#f2f2f7] px-2 py-0.5 text-[10px] font-bold text-[var(--muted)]">
+                  {currentNumber}/{total}
+                </span>
+              )}
+            </div>
             <h2
               id="site-announcement-title"
               className="mt-1 break-words text-xl font-bold tracking-tight"
@@ -81,7 +98,7 @@ export function AnnouncementPopup() {
             onClick={close}
             className="h-12 rounded-full bg-[#f2f2f7] text-sm font-semibold"
           >
-            닫기
+            {queue.length > 1 ? "다음 공지" : "닫기"}
           </button>
           <Link
             href={announcement.href ?? `/announcement/${announcement.id}`}

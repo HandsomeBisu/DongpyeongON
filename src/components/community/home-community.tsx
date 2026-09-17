@@ -3,16 +3,22 @@
 import Link from "next/link";
 import {
   CircleHelp,
+  Clock3,
+  Eye,
+  Flame,
+  Heart,
+  ListFilter,
+  Megaphone,
   MessageCircle,
   MessageSquare,
   MessagesSquare,
   Plus,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
-import { markdownToPlainText } from "@/lib/markdown";
 import { VerifiedName } from "@/components/verified-name";
 import { ListSkeleton } from "@/components/ui/skeleton";
+import { markdownToPlainText } from "@/lib/markdown";
 import {
   POST_CATEGORIES,
   formatPostDate,
@@ -21,33 +27,68 @@ import {
 } from "@/lib/posts";
 
 type PostCategory = (typeof POST_CATEGORIES)[number];
+type Board = "전체" | PostCategory;
+type SortKey = "latest" | "popular" | "likes" | "comments" | "oldest";
 
-const boardDetails: Record<
+const boards: Board[] = ["전체", ...POST_CATEGORIES];
+const sortOptions: Array<{
+  key: SortKey;
+  label: string;
+  icon: typeof Clock3;
+}> = [
+  { key: "latest", label: "최신순", icon: Clock3 },
+  { key: "popular", label: "인기순", icon: Flame },
+  { key: "likes", label: "좋아요 많은 순", icon: Heart },
+  { key: "comments", label: "댓글 많은 순", icon: MessageSquare },
+  { key: "oldest", label: "오래된 순", icon: ListFilter },
+];
+
+const categoryDetails: Record<
   PostCategory,
-  { description: string; icon: typeof MessagesSquare; color: string }
+  { icon: typeof MessagesSquare; color: string }
 > = {
   자유게시판: {
-    description: "학교생활과 일상을 자유롭게 나눠요.",
     icon: MessagesSquare,
     color: "text-[#007aff] bg-[#e5f1ff]",
   },
   질문게시판: {
-    description: "궁금한 것을 묻고 함께 답해요.",
     icon: CircleHelp,
     color: "text-[#af52de] bg-[#f3eafa]",
   },
   "학생회 공지": {
-    description: "학생회에서 전하는 소식을 확인해요.",
-    icon: MessageCircle,
-    color: "text-[#ff9500] bg-[#fff3df]",
+    icon: Megaphone,
+    color: "text-[#d97706] bg-[#fff3df]",
   },
 };
+
+function sortPosts(posts: CommunityPost[], sort: SortKey) {
+  const createdAt = (post: CommunityPost) => post.createdAt?.toMillis() ?? 0;
+  return [...posts].sort((left, right) => {
+    if (sort === "oldest") return createdAt(left) - createdAt(right);
+    if (sort === "likes")
+      return (
+        right.likeCount - left.likeCount || createdAt(right) - createdAt(left)
+      );
+    if (sort === "comments")
+      return (
+        right.commentCount - left.commentCount ||
+        createdAt(right) - createdAt(left)
+      );
+    if (sort === "popular") {
+      const score = (post: CommunityPost) =>
+        post.likeCount * 5 + post.commentCount * 3 + post.viewCount;
+      return score(right) - score(left) || createdAt(right) - createdAt(left);
+    }
+    return createdAt(right) - createdAt(left);
+  });
+}
 
 export function HomeCommunity() {
   const { user, loading: authLoading, configured } = useAuth();
   const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [loadedFor, setLoadedFor] = useState<string | null>(null);
-  const [board, setBoard] = useState<PostCategory>(POST_CATEGORIES[0]);
+  const [board, setBoard] = useState<Board>("전체");
+  const [sort, setSort] = useState<SortKey>("latest");
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -62,45 +103,77 @@ export function HomeCommunity() {
         setLoadedFor(user.uid);
         setError("게시물을 불러오지 못했어요.");
       },
+      0,
     );
   }, [configured, user]);
 
-  const visiblePosts = posts.filter((post) => post.category === board);
+  const visiblePosts = useMemo(
+    () =>
+      sortPosts(
+        board === "전체"
+          ? posts
+          : posts.filter((post) => post.category === board),
+        sort,
+      ),
+    [board, posts, sort],
+  );
   const isLoading = authLoading || Boolean(user && loadedFor !== user.uid);
-  let emptyMessage = "";
-  if (!configured) emptyMessage = "커뮤니티 연결 정보를 확인해 주세요.";
-  else if (!user) emptyMessage = "로그인하면 동평의 이야기를 볼 수 있어요.";
-  else if (!visiblePosts.length)
-    emptyMessage = `${board}의 첫 글을 기다리고 있어요.`;
+  const emptyMessage = !configured
+    ? "커뮤니티 연결 정보를 확인해 주세요."
+    : !user
+      ? "로그인하면 동평의 이야기를 볼 수 있어요."
+      : board === "전체"
+        ? "아직 등록된 게시물이 없어요."
+        : `${board}의 첫 글을 기다리고 있어요.`;
 
   return (
     <>
-      <section id="community" className="scroll-mt-24">
-        <div className="mb-4 flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <MessageCircle size={24} />
-              <h1 className="text-2xl font-bold tracking-[-.03em]">커뮤니티</h1>
-            </div>
-            <p className="mt-2 text-sm text-[var(--muted)]">
-              지금 우리 학교의 이야기를 확인해 보세요.
-            </p>
+      <section className="pb-24 md:pb-10">
+        <div className="mb-6">
+          <div className="flex items-center gap-2">
+            <MessageCircle size={26} />
+            <h1 className="text-2xl font-bold tracking-[-.03em] sm:text-3xl">
+              전체 게시물
+            </h1>
           </div>
+          <p className="mt-2 break-keep text-sm text-[var(--muted)]">
+            동평중학교의 모든 이야기를 원하는 순서로 확인해 보세요.
+          </p>
+        </div>
+
+        <div className="mb-4 space-y-3">
           <div
-            className="flex rounded-2xl bg-[#e9e9ed] p-1.5"
+            className="flex max-w-full gap-1.5 overflow-x-auto rounded-2xl bg-[#e9e9ed] p-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             role="tablist"
             aria-label="게시판 선택"
           >
-            {POST_CATEGORIES.map((item) => (
+            {boards.map((item) => (
               <button
                 key={item}
                 type="button"
                 role="tab"
                 aria-selected={board === item}
                 onClick={() => setBoard(item)}
-                className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${board === item ? "bg-white text-[var(--foreground)] shadow-sm" : "text-[var(--muted)] hover:text-[var(--foreground)]"}`}
+                className={`shrink-0 rounded-xl px-4 py-2 text-sm font-semibold transition ${board === item ? "bg-white text-[var(--foreground)] shadow-sm" : "text-[var(--muted)] hover:text-[var(--foreground)]"}`}
               >
                 {item}
+              </button>
+            ))}
+          </div>
+          <div
+            className="flex max-w-full gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            aria-label="게시물 정렬"
+          >
+            {sortOptions.map(({ key, label, icon: Icon }) => (
+              <button
+                key={key}
+                type="button"
+                aria-pressed={sort === key}
+                onClick={() => setSort(key)}
+                className={`inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-xs font-semibold transition ${sort === key ? "border-[#007aff] bg-[#eaf4ff] text-[#007aff]" : "border-black/10 bg-white text-[var(--muted)] hover:bg-[#f8f8fa]"}`}
+              >
+                <Icon size={14} />
+                {label}
               </button>
             ))}
           </div>
@@ -114,20 +187,15 @@ export function HomeCommunity() {
             {error}
           </p>
         )}
+
         <div className="ios-card overflow-hidden">
           {isLoading ? (
-            <ListSkeleton rows={4} />
-          ) : emptyMessage ? (
+            <ListSkeleton rows={6} />
+          ) : !visiblePosts.length ? (
             <div className="grid min-h-72 place-items-center p-8 text-center">
               <div>
-                <span
-                  className={`mx-auto grid size-14 place-items-center rounded-[18px] ${boardDetails[board].color}`}
-                >
-                  {board === "자유게시판" ? (
-                    <MessagesSquare size={26} />
-                  ) : (
-                    <CircleHelp size={26} />
-                  )}
+                <span className="mx-auto grid size-14 place-items-center rounded-[18px] bg-[#e5f1ff] text-[#007aff]">
+                  <MessagesSquare size={26} />
                 </span>
                 <p className="mt-4 text-sm text-[var(--muted)]">
                   {emptyMessage}
@@ -144,49 +212,56 @@ export function HomeCommunity() {
             </div>
           ) : (
             <div className="divide-y divide-[var(--border)]">
-              {visiblePosts.map((post) => (
-                <Link
-                  key={post.id}
-                  href={`/post/${post.id}`}
-                  className="group block px-5 py-5 transition hover:bg-[#f8f8fa] sm:px-6"
-                >
-                  <div className="flex items-start gap-4">
-                    <span
-                      className={`mt-0.5 grid size-10 shrink-0 place-items-center rounded-[13px] ${boardDetails[board].color}`}
-                    >
-                      {board === "자유게시판" ? (
-                        <MessagesSquare size={19} />
-                      ) : (
-                        <CircleHelp size={19} />
-                      )}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 text-xs text-[var(--muted)]">
-                        <VerifiedName
-                          name={post.authorNickname}
-                          userId={post.authorId}
-                          className="font-semibold text-[var(--foreground)]"
-                        />
-                        <span>·</span>
-                        <time>{formatPostDate(post.createdAt)}</time>
-                      </div>
-                      <h2 className="mt-1.5 truncate text-base font-bold group-hover:text-[#007aff]">
-                        {post.title}
-                      </h2>
-                      <p className="mt-1 line-clamp-2 text-sm leading-6 text-[var(--muted)]">
-                        {markdownToPlainText(post.content)}
-                      </p>
-                      <div className="mt-3 flex items-center gap-3 text-xs text-[var(--muted)]">
-                        <span className="inline-flex items-center gap-1">
-                          <MessageSquare size={13} />
-                          댓글 {post.commentCount}
-                        </span>
-                        <span>좋아요 {post.likeCount}</span>
+              {visiblePosts.map((post) => {
+                const details = categoryDetails[post.category];
+                const Icon = details.icon;
+                return (
+                  <Link
+                    key={post.id}
+                    href={`/post/${post.id}`}
+                    className={`group block px-4 py-5 transition hover:bg-[#f8f8fa] sm:px-6 ${post.category === "학생회 공지" ? "bg-gradient-to-r from-[#fff8ec] to-white" : ""}`}
+                  >
+                    <div className="flex items-start gap-3 sm:gap-4">
+                      <span
+                        className={`mt-0.5 grid size-10 shrink-0 place-items-center rounded-[13px] ${details.color}`}
+                      >
+                        <Icon size={19} />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex min-w-0 flex-wrap items-center gap-1.5 text-xs text-[var(--muted)]">
+                          <span className="font-semibold text-[var(--foreground)]">
+                            {post.category}
+                          </span>
+                          <span>·</span>
+                          <VerifiedName
+                            name={post.authorNickname}
+                            userId={post.authorId}
+                          />
+                          <span>·</span>
+                          <time>{formatPostDate(post.createdAt)}</time>
+                        </div>
+                        <h2 className="mt-1.5 truncate text-base font-bold group-hover:text-[#007aff]">
+                          {post.title}
+                        </h2>
+                        <p className="mt-1 line-clamp-2 text-sm leading-6 text-[var(--muted)]">
+                          {markdownToPlainText(post.content)}
+                        </p>
+                        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--muted)]">
+                          <span className="inline-flex items-center gap-1">
+                            <Eye size={13} /> 조회 {post.viewCount}
+                          </span>
+                          <span className="inline-flex items-center gap-1">
+                            <Heart size={13} /> 좋아요 {post.likeCount}
+                          </span>
+                          <span className="inline-flex items-center gap-1">
+                            <MessageSquare size={13} /> 댓글 {post.commentCount}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </Link>
-              ))}
+                  </Link>
+                );
+              })}
             </div>
           )}
         </div>

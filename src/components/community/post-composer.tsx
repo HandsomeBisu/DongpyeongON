@@ -191,7 +191,7 @@ export function PostComposer({ postId }: { postId?: string }) {
   if (loading || !user || (postId && editingPost === undefined))
     return (
       <>
-        <SiteHeader active="/#community" />
+        <SiteHeader active="/community" />
         <PageSkeleton className="max-w-3xl" />
       </>
     );
@@ -199,7 +199,7 @@ export function PostComposer({ postId }: { postId?: string }) {
   if (postId && (!editingPost || editingPost.authorId !== user.uid))
     return (
       <>
-        <SiteHeader active="/#community" />
+        <SiteHeader active="/community" />
         <main className="mx-auto max-w-3xl px-5 py-10">
           <div className="ios-card px-5 py-16 text-center text-sm text-[var(--muted)]">
             {editingPost
@@ -211,11 +211,11 @@ export function PostComposer({ postId }: { postId?: string }) {
     );
 
   const isEditing = Boolean(postId && editingPost);
-  const returnHref = postId ? `/post/${postId}` : "/#community";
+  const returnHref = postId ? `/post/${postId}` : "/community";
 
   return (
     <>
-      <SiteHeader active="/#community" />
+      <SiteHeader active="/community" />
       <main className="page-enter mx-auto min-h-[calc(100dvh-74px)] max-w-3xl px-5 py-7 sm:px-8 sm:py-10">
         <Link
           href={returnHref}

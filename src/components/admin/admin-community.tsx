@@ -6,9 +6,11 @@ import {
   ExternalLink,
   Megaphone,
   MessagesSquare,
+  Pencil,
   Send,
+  X,
 } from "lucide-react";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { SiteHeader } from "@/components/site-header";
 import { ListSkeleton, TableSkeleton } from "@/components/ui/skeleton";
 import { MarkdownEditor } from "@/components/community/markdown-editor";
@@ -46,6 +48,9 @@ export function AdminCommunity() {
   const [announcementMessage, setAnnouncementMessage] = useState("");
   const [busy, setBusy] = useState("");
   const [publishing, setPublishing] = useState(false);
+  const [editingAnnouncement, setEditingAnnouncement] =
+    useState<SiteAnnouncement | null>(null);
+  const announcementFormRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
     adminFetch("/api/admin/posts")
@@ -78,39 +83,45 @@ export function AdminCommunity() {
     const data = new FormData(form);
     setPublishing(true);
     setAnnouncementMessage("");
-    const response = await adminFetch("/api/admin/announcements", {
-      method: "POST",
+    const response = await adminFetch(
+      editingAnnouncement
+        ? `/api/admin/announcements/${editingAnnouncement.id}`
+        : "/api/admin/announcements",
+      {
+      method: editingAnnouncement ? "PATCH" : "POST",
       body: JSON.stringify({
         title: data.get("title"),
         content: data.get("content"),
         showPopup: data.get("showPopup") === "on",
         showBanner: data.get("showBanner") === "on",
       }),
-    });
+      },
+    );
     const result = (await response.json().catch(() => ({}))) as {
       id?: string;
       error?: string;
     };
-    if (response.ok && result.id) {
-      const created: SiteAnnouncement = {
-        id: result.id,
+    if (response.ok && (editingAnnouncement || result.id)) {
+      const saved: SiteAnnouncement = {
+        id: editingAnnouncement?.id ?? result.id ?? "",
         title: String(data.get("title")),
         content: String(data.get("content")),
         showPopup: data.get("showPopup") === "on",
         showBanner: data.get("showBanner") === "on",
-        createdAt: new Date().toISOString(),
+        createdAt:
+          editingAnnouncement?.createdAt ?? new Date().toISOString(),
       };
-      setAnnouncements((items) => [
-        created,
-        ...items
-          .map((item) => ({
-            ...item,
-            showPopup: created.showPopup ? false : item.showPopup,
-            showBanner: created.showBanner ? false : item.showBanner,
-          }))
-          .slice(0, 29),
-      ]);
-      setAnnouncementMessage("전체 공지를 등록했어요.");
+      setAnnouncements((items) =>
+        editingAnnouncement
+          ? items.map((item) => (item.id === saved.id ? saved : item))
+          : [saved, ...items].slice(0, 100),
+      );
+      setAnnouncementMessage(
+        editingAnnouncement
+          ? "전체 공지를 수정했어요."
+          : "전체 공지를 등록했어요.",
+      );
+      setEditingAnnouncement(null);
       form.reset();
     } else {
       setAnnouncementMessage(result.error || "전체 공지를 등록하지 못했어요.");
@@ -169,13 +180,37 @@ export function AdminCommunity() {
             <div>
               <h2 className="font-bold">전체 공지 작성</h2>
               <p className="mt-0.5 text-xs text-[var(--muted)]">
-                새 공지를 같은 방식으로 노출하면 이전 공지는 자동으로 내려가요.
+                여러 공지를 배너와 팝업에 동시에 활성화할 수 있어요.
               </p>
             </div>
           </div>
-          <form onSubmit={publishAnnouncement} className="mt-5 grid gap-4">
+          <form
+            key={editingAnnouncement?.id ?? "new-announcement"}
+            ref={announcementFormRef}
+            onSubmit={publishAnnouncement}
+            className="mt-5 grid scroll-mt-28 gap-4"
+          >
+            {editingAnnouncement && (
+              <div className="flex items-center justify-between gap-3 rounded-2xl bg-[#edf5ff] px-4 py-3 text-sm text-[#0066d6]">
+                <span className="min-w-0 truncate font-bold">
+                  ‘{editingAnnouncement.title}’ 수정 중
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingAnnouncement(null);
+                    setAnnouncementMessage("");
+                  }}
+                  className="grid size-8 shrink-0 place-items-center rounded-full bg-white/80"
+                  aria-label="공지 수정 취소"
+                >
+                  <X size={15} />
+                </button>
+              </div>
+            )}
             <input
               name="title"
+              defaultValue={editingAnnouncement?.title ?? ""}
               required
               minLength={2}
               maxLength={80}
@@ -187,7 +222,9 @@ export function AdminCommunity() {
                 공지 내용
               </span>
               <MarkdownEditor
+                key={editingAnnouncement?.id ?? "new-editor"}
                 name="content"
+                defaultValue={editingAnnouncement?.content ?? ""}
                 rows={8}
                 placeholder="전체 사용자에게 알릴 내용을 입력해 주세요."
               />
@@ -196,12 +233,14 @@ export function AdminCommunity() {
               <AnnouncementOption
                 name="showPopup"
                 title="접속 팝업"
-                description="사이트에 접속할 때 공지 내용을 띄워요."
+                description="최신 활성 공지 중 최대 2개를 차례로 띄워요."
+                defaultChecked={editingAnnouncement?.showPopup ?? false}
               />
               <AnnouncementOption
                 name="showBanner"
                 title="상단 배너"
-                description="메인 화면 상단에 고정된 바를 표시해요."
+                description="여러 제목을 상단에서 차례로 전환해요."
+                defaultChecked={editingAnnouncement?.showBanner ?? false}
               />
             </div>
             {announcementMessage && (
@@ -214,7 +253,13 @@ export function AdminCommunity() {
               className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-[#007aff] px-6 text-sm font-bold text-white shadow-md shadow-blue-500/20 disabled:opacity-50 sm:justify-self-end"
             >
               <Send size={16} />
-              {publishing ? "등록 중..." : "전체 공지 등록"}
+              {publishing
+                ? editingAnnouncement
+                  ? "수정 중..."
+                  : "등록 중..."
+                : editingAnnouncement
+                  ? "수정사항 저장"
+                  : "전체 공지 등록"}
             </button>
           </form>
           {announcementsLoading ? (
@@ -224,9 +269,9 @@ export function AdminCommunity() {
           ) : (
             announcements.length > 0 && (
               <div className="mt-6 border-t border-[var(--border)] pt-5">
-                <h3 className="text-sm font-bold">최근 전체 공지</h3>
+                <h3 className="text-sm font-bold">전체 공지 관리</h3>
                 <div className="mt-3 space-y-2">
-                  {announcements.slice(0, 3).map((announcement) => (
+                  {announcements.map((announcement) => (
                     <div
                       key={announcement.id}
                       className="flex flex-wrap items-center gap-2 rounded-2xl bg-[#f5f5f7] px-4 py-3"
@@ -255,6 +300,27 @@ export function AdminCommunity() {
                           배너
                         </span>
                       )}
+                      {!announcement.showPopup && !announcement.showBanner && (
+                        <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-[var(--muted)]">
+                          비노출
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingAnnouncement(announcement);
+                          setAnnouncementMessage("");
+                          window.requestAnimationFrame(() =>
+                            announcementFormRef.current?.scrollIntoView({
+                              behavior: "smooth",
+                              block: "start",
+                            }),
+                          );
+                        }}
+                        className="inline-flex h-9 items-center gap-1.5 rounded-full bg-white px-3 text-xs font-bold text-[#007aff] shadow-sm"
+                      >
+                        <Pencil size={13} /> 수정
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -412,16 +478,19 @@ function AnnouncementOption({
   name,
   title,
   description,
+  defaultChecked = false,
 }: {
   name: string;
   title: string;
   description: string;
+  defaultChecked?: boolean;
 }) {
   return (
     <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-[var(--border)] bg-[#f8f8fa] p-4 has-checked:border-[#007aff]/40 has-checked:bg-[#edf5ff]">
       <input
         type="checkbox"
         name={name}
+        defaultChecked={defaultChecked}
         className="mt-0.5 size-5 accent-[#007aff]"
       />
       <span>

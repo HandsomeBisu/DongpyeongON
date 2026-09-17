@@ -105,6 +105,11 @@ service cloud.firestore {
         allow read: if isOwner(userId);
         allow write: if false;
       }
+
+      match /views/{userId} {
+        // 조회수는 서버에서 사용자별 한 번만 집계합니다.
+        allow read, write: if false;
+      }
     }
 
     match /reports/{reportId} {

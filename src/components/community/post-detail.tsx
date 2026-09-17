@@ -6,6 +6,7 @@ import {
   AlertTriangle,
   ArrowLeft,
   Check,
+  Eye,
   Flag,
   LoaderCircle,
   Pencil,
@@ -70,6 +71,12 @@ export function PostDetail({
     return () => stops.forEach((stop) => stop());
   }, [configured, postId, user]);
   useEffect(() => {
+    if (!configured || !user) return;
+    void authenticatedFetch(user, `/api/posts/${postId}/view`, {
+      method: "POST",
+    }).catch(() => undefined);
+  }, [configured, postId, user]);
+  useEffect(() => {
     if (
       !focusCommentId ||
       !commentsLoaded ||
@@ -100,7 +107,7 @@ export function PostDetail({
     setBusy(true);
     try {
       await archivePost(post.id);
-      router.replace("/#community");
+      router.replace("/community");
     } catch {
       setError("삭제하지 못했습니다.");
       setDeleteOpen(false);
@@ -202,10 +209,10 @@ export function PostDetail({
   const owner = Boolean(user && post && user.uid === post.authorId);
   return (
     <>
-      <SiteHeader active="/#community" />
+      <SiteHeader active="/community" />
       <main className="page-enter mx-auto min-h-screen max-w-4xl px-5 py-8 sm:px-8">
         <Link
-          href="/#community"
+          href="/community"
           className="mb-5 inline-flex min-h-11 items-center gap-1.5 rounded-full px-3 text-sm font-semibold text-[var(--muted)] hover:bg-black/5"
         >
           <ArrowLeft size={16} />
@@ -226,8 +233,10 @@ export function PostDetail({
                   name={post.authorNickname}
                   userId={post.authorId}
                 />{" "}
-                ·{" "}
-                {formatPostDate(post.createdAt)}
+                · {formatPostDate(post.createdAt)}
+                <span className="ml-2 inline-flex items-center gap-1">
+                  <Eye size={14} /> 조회 {post.viewCount}
+                </span>
               </div>
               <h1 className="mt-5 break-words text-2xl font-bold leading-tight sm:text-3xl">
                 {post.title}

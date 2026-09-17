@@ -72,7 +72,7 @@ export function CommentReport({
 
   return (
     <>
-      <SiteHeader active="/#community" />
+      <SiteHeader active="/community" />
       <main className="page-enter mx-auto min-h-[calc(100dvh-74px)] max-w-3xl px-5 py-7 sm:px-8 sm:py-10">
         <Link
           href={`/post/${postId}`}

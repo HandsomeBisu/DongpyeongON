@@ -15,7 +15,7 @@ import { NotificationCenter } from "@/components/notifications/notification-cent
 
 const links = [
   { href: "/", label: "홈", icon: Home },
-  { href: "/#community", label: "커뮤니티", icon: MessageCircle },
+  { href: "/community", label: "커뮤니티", icon: MessageCircle },
   { href: "/suggestions", label: "신문고", icon: Inbox },
   { href: "/music", label: "신청곡", icon: Music2 },
 ];

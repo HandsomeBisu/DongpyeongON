@@ -70,6 +70,7 @@ export async function POST(request: Request) {
           status: "published",
           likeCount: 0,
           commentCount: 0,
+          viewCount: 0,
           createdAt: FieldValue.serverTimestamp(),
           updatedAt: FieldValue.serverTimestamp(),
         });

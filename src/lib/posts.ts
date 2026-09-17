@@ -32,6 +32,7 @@ export interface CommunityPost extends PostInput {
   status: "published" | "hidden" | "deleted";
   likeCount: number;
   commentCount: number;
+  viewCount: number;
   createdAt: Timestamp | null;
   updatedAt: Timestamp | null;
 }
@@ -58,6 +59,7 @@ function mapPost(snapshot: {
     status: data.status,
     likeCount: data.likeCount ?? 0,
     commentCount: data.commentCount ?? 0,
+    viewCount: data.viewCount ?? 0,
     createdAt: data.createdAt ?? null,
     updatedAt: data.updatedAt ?? null,
   };
@@ -65,6 +67,7 @@ function mapPost(snapshot: {
 export function subscribeToPosts(
   onData: (posts: CommunityPost[]) => void,
   onError: () => void,
+  maximum = 30,
 ) {
   const { db } = getFirebaseClient();
   const mapAndSort = (snapshot: {
@@ -81,12 +84,18 @@ export function subscribeToPosts(
     );
   let fallbackUnsubscribe: (() => void) | undefined;
   const primaryUnsubscribe = onSnapshot(
-    query(
-      collection(db, "posts"),
-      where("status", "==", "published"),
-      orderBy("createdAt", "desc"),
-      limit(30),
-    ),
+    maximum > 0
+      ? query(
+          collection(db, "posts"),
+          where("status", "==", "published"),
+          orderBy("createdAt", "desc"),
+          limit(maximum),
+        )
+      : query(
+          collection(db, "posts"),
+          where("status", "==", "published"),
+          orderBy("createdAt", "desc"),
+        ),
     mapAndSort,
     (error) => {
       if (error.code !== "failed-precondition" || fallbackUnsubscribe) {
@@ -94,11 +103,13 @@ export function subscribeToPosts(
         return;
       }
       fallbackUnsubscribe = onSnapshot(
-        query(
-          collection(db, "posts"),
-          where("status", "==", "published"),
-          limit(30),
-        ),
+        maximum > 0
+          ? query(
+              collection(db, "posts"),
+              where("status", "==", "published"),
+              limit(maximum),
+            )
+          : query(collection(db, "posts"), where("status", "==", "published")),
         mapAndSort,
         onError,
       );

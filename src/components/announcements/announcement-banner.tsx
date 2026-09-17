@@ -6,29 +6,66 @@ import { useEffect, useState } from "react";
 import { fetchAnnouncements, type SiteAnnouncement } from "@/lib/announcements";
 
 export function AnnouncementBanner() {
-  const [announcement, setAnnouncement] = useState<SiteAnnouncement | null>(
-    null,
-  );
+  const [announcements, setAnnouncements] = useState<SiteAnnouncement[]>([]);
+  const [index, setIndex] = useState(0);
+  const [sliding, setSliding] = useState(false);
+  const [closed, setClosed] = useState(false);
+
   useEffect(() => {
     fetchAnnouncements()
       .then((items) =>
-        setAnnouncement(items.find((item) => item.showBanner) ?? null),
+        setAnnouncements(items.filter((item) => item.showBanner)),
       )
       .catch(() => undefined);
   }, []);
-  if (!announcement) return null;
+
+  useEffect(() => {
+    if (announcements.length < 2 || closed) return;
+    let transitionTimer = 0;
+    const interval = window.setInterval(() => {
+      setSliding(true);
+      transitionTimer = window.setTimeout(() => {
+        setIndex((current) => (current + 1) % announcements.length);
+        setSliding(false);
+      }, 480);
+    }, 3_000);
+    return () => {
+      window.clearInterval(interval);
+      if (transitionTimer) window.clearTimeout(transitionTimer);
+    };
+  }, [announcements.length, closed]);
+
+  if (closed || !announcements.length) return null;
+  const current = announcements[index % announcements.length];
+  const next = announcements[(index + 1) % announcements.length];
+
   return (
     <div className="sticky top-[74px] z-30 max-w-full overflow-hidden border-b border-blue-200/70 bg-[#eaf4ff]/95 backdrop-blur-xl">
       <div className="mx-auto flex min-h-11 max-w-6xl items-center gap-2 px-3 py-2 text-sm text-[#005bbb] sm:px-5">
-        <Link
-          href={`/announcement/${announcement.id}`}
-          className="min-w-0 flex-1 rounded-lg py-1 hover:opacity-75"
-        >
-          <strong className="block truncate">{announcement.title}</strong>
-        </Link>
+        <div className="relative h-7 min-w-0 flex-1 overflow-hidden">
+          <BannerLink
+            announcement={current}
+            className={sliding ? "translate-y-full opacity-0" : "translate-y-0"}
+          />
+          {announcements.length > 1 && (
+            <BannerLink
+              announcement={next}
+              className={
+                sliding
+                  ? "translate-y-0 opacity-100"
+                  : "-translate-y-full opacity-0"
+              }
+            />
+          )}
+        </div>
+        {announcements.length > 1 && (
+          <span className="shrink-0 rounded-full bg-white/70 px-2 py-1 text-[10px] font-bold text-[#007aff]">
+            {index + 1}/{announcements.length}
+          </span>
+        )}
         <button
           type="button"
-          onClick={() => setAnnouncement(null)}
+          onClick={() => setClosed(true)}
           className="grid size-8 shrink-0 place-items-center rounded-full hover:bg-blue-100"
           aria-label="공지 배너 닫기"
         >
@@ -36,5 +73,22 @@ export function AnnouncementBanner() {
         </button>
       </div>
     </div>
+  );
+}
+
+function BannerLink({
+  announcement,
+  className,
+}: {
+  announcement: SiteAnnouncement;
+  className: string;
+}) {
+  return (
+    <Link
+      href={announcement.href ?? `/announcement/${announcement.id}`}
+      className={`absolute inset-0 flex min-w-0 items-center rounded-lg transition-all duration-500 ease-[cubic-bezier(.22,1,.36,1)] hover:opacity-75 ${className}`}
+    >
+      <strong className="block truncate">{announcement.title}</strong>
+    </Link>
   );
 }
