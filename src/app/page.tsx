@@ -217,6 +217,42 @@ export default function HomePage() {
 
       <AnnouncementBanner />
 
+      <section
+        aria-labelledby="home-title"
+        className="mx-auto max-w-6xl px-4 pt-8 sm:px-5 lg:pt-10"
+      >
+        <div className="hero-card page-enter overflow-hidden rounded-[28px] px-6 py-9 text-white shadow-xl shadow-blue-500/15 sm:px-10 sm:py-12">
+          <p className="text-sm font-semibold tracking-[0.14em] text-white/75">
+            동평중학교 온라인 커뮤니티
+          </p>
+          <h1
+            id="home-title"
+            className="mt-3 text-4xl font-bold tracking-[-0.04em] sm:text-5xl"
+          >
+            DongpyeongON
+          </h1>
+          <p className="mt-5 max-w-2xl break-keep text-base leading-7 text-white/85 sm:text-lg">
+            동평중학교 학생들이 학교 소식과 일상을 나누고, 급식과 시간표를
+            확인하며, 학생회 공지·동평신문고·점심시간 신청곡을 이용하는 학교
+            커뮤니티입니다.
+          </p>
+          <div className="mt-7 flex flex-wrap gap-3">
+            <Link
+              href="/login"
+              className="rounded-full bg-white px-5 py-3 text-sm font-bold text-[#0066d6] shadow-lg shadow-blue-950/10 hover:scale-[1.02]"
+            >
+              학교 계정으로 시작하기
+            </Link>
+            <Link
+              href="/privacy"
+              className="rounded-full border border-white/30 bg-white/10 px-5 py-3 text-sm font-semibold text-white hover:bg-white/20"
+            >
+              개인정보 처리방침
+            </Link>
+          </div>
+        </div>
+      </section>
+
       <main className="page-enter mx-auto grid min-w-0 max-w-6xl gap-8 px-4 py-8 sm:px-5 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start lg:py-10">
         <div className="min-w-0 space-y-10">
           <DashboardSection icon={<Activity size={25} />} title="실시간 인기글">
@@ -294,7 +330,10 @@ export default function HomePage() {
               <div className="overflow-hidden rounded-2xl bg-[#f5f5f7] shadow-inner">
                 <ul className="divide-y divide-black/[.05] px-4 py-2">
                   {meal.menu.map((item) => (
-                    <li key={item} className="flex items-center gap-2 py-2.5 text-sm">
+                    <li
+                      key={item}
+                      className="flex items-center gap-2 py-2.5 text-sm"
+                    >
                       <span className="size-1.5 shrink-0 rounded-full bg-[#ff9500]" />
                       <span className="min-w-0 break-keep">{item}</span>
                     </li>
@@ -343,11 +382,16 @@ export default function HomePage() {
             ) : timetable.periods.length ? (
               <ol className="divide-y divide-black/[.05] overflow-hidden rounded-2xl bg-[#f5f5f7] px-3 py-1 shadow-inner">
                 {timetable.periods.map((item) => (
-                  <li key={item.period} className="flex items-center gap-3 px-1 py-2.5">
+                  <li
+                    key={item.period}
+                    className="flex items-center gap-3 px-1 py-2.5"
+                  >
                     <span className="grid size-7 shrink-0 place-items-center rounded-full bg-white text-xs font-bold text-[#007aff] shadow-sm">
                       {item.period}
                     </span>
-                    <strong className="min-w-0 break-keep text-sm">{item.subject}</strong>
+                    <strong className="min-w-0 break-keep text-sm">
+                      {item.subject}
+                    </strong>
                   </li>
                 ))}
               </ol>

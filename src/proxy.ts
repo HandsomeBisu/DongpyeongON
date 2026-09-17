@@ -4,12 +4,11 @@ import {
   queueSigningSecret,
   verifyAdmissionToken,
 } from "@/lib/queue-token";
-
-const PUBLIC_PATHS = ["/waiting", "/api/queue"];
+import { isWaitingRoomPublicPath } from "@/lib/waiting-room-paths";
 
 export async function proxy(request: NextRequest) {
   if (process.env.WAITING_ROOM_ENABLED !== "true") return NextResponse.next();
-  if (PUBLIC_PATHS.some((path) => request.nextUrl.pathname.startsWith(path)))
+  if (isWaitingRoomPublicPath(request.nextUrl.pathname))
     return NextResponse.next();
 
   const secret = queueSigningSecret();
