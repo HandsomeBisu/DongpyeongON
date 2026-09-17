@@ -82,7 +82,7 @@ export function StudentProfileForm({ initialValue, submitLabel, onSubmit }: Stud
               minLength={2}
               maxLength={20}
               autoComplete="name"
-              placeholder="학교에서 사용하는 이름"
+              placeholder="실명 사용"
               className="min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-[#aaaab2]"
             />
           </span>

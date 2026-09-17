@@ -16,12 +16,15 @@ import { adminFetch } from "@/lib/admin-fetch";
 import { CommunityAdminNav } from "@/components/admin/community-admin-nav";
 import type { SiteAnnouncement } from "@/lib/announcements";
 import type { ContentStatus } from "@/types/domain";
+import { VerifiedName } from "@/components/verified-name";
 
 type AdminPost = {
   id: string;
   title: string;
   category: string;
   authorNickname: string;
+  authorId: string;
+  authorVerified: boolean;
   status: ContentStatus;
   likeCount: number;
   commentCount: number;
@@ -288,7 +291,13 @@ export function AdminCommunity() {
                       </Link>
                     </div>
                     <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
-                      {post.category} · {post.authorNickname} ·{" "}
+                      {post.category} ·{" "}
+                      <VerifiedName
+                        name={post.authorNickname}
+                        userId={post.authorId}
+                        verified={post.authorVerified}
+                      />{" "}
+                      ·{" "}
                       {formatDate(post.createdAt)}
                     </p>
                     <div className="mt-4 flex items-center justify-between gap-3 border-t border-[var(--border)] pt-4">
@@ -351,7 +360,13 @@ export function AdminCommunity() {
                             {post.category} · {formatDate(post.createdAt)}
                           </p>
                         </td>
-                        <td className="p-4 text-sm">{post.authorNickname}</td>
+                        <td className="p-4 text-sm">
+                          <VerifiedName
+                            name={post.authorNickname}
+                            userId={post.authorId}
+                            verified={post.authorVerified}
+                          />
+                        </td>
                         <td className="p-4 text-sm text-[var(--muted)]">
                           좋아요 {post.likeCount} · 댓글 {post.commentCount}
                         </td>

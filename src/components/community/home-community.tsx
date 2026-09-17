@@ -11,6 +11,7 @@ import {
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { markdownToPlainText } from "@/lib/markdown";
+import { VerifiedName } from "@/components/verified-name";
 import { ListSkeleton } from "@/components/ui/skeleton";
 import {
   POST_CATEGORIES,
@@ -161,9 +162,11 @@ export function HomeCommunity() {
                     </span>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 text-xs text-[var(--muted)]">
-                        <span className="font-semibold text-[var(--foreground)]">
-                          {post.authorNickname}
-                        </span>
+                        <VerifiedName
+                          name={post.authorNickname}
+                          userId={post.authorId}
+                          className="font-semibold text-[var(--foreground)]"
+                        />
                         <span>·</span>
                         <time>{formatPostDate(post.createdAt)}</time>
                       </div>

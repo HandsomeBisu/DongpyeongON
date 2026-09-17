@@ -13,6 +13,8 @@ import { useAuth } from "@/components/auth/auth-provider";
 import { StudentProfileForm } from "@/components/profile/student-profile-form";
 import { SiteHeader } from "@/components/site-header";
 import { PageSkeleton } from "@/components/ui/skeleton";
+import { VerifiedName } from "@/components/verified-name";
+import { MyActivity } from "@/components/profile/my-activity";
 
 export function MyPage() {
   const router = useRouter();
@@ -65,12 +67,12 @@ export function MyPage() {
                   {initials}
                 </span>
                 <div className="mt-5 flex items-center gap-2">
-                  <h2 className="text-2xl font-bold">{profile.name}</h2>
-                  <BadgeCheck
-                    size={19}
-                    fill="white"
-                    className="text-[#007aff]"
-                  />
+                  <h2 className="min-w-0 text-2xl font-bold">
+                    <VerifiedName
+                      name={profile.name}
+                      userId={profile.uid}
+                    />
+                  </h2>
                 </div>
                 <p className="mt-1 text-sm text-white/75">동평중학교 학생</p>
               </div>
@@ -131,6 +133,7 @@ export function MyPage() {
             )}
           </section>
         </div>
+        <MyActivity />
       </main>
     </div>
   );

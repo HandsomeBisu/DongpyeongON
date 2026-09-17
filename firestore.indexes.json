@@ -13,6 +13,22 @@
       { "fieldPath": "status", "order": "ASCENDING" },
       { "fieldPath": "createdAt", "order": "ASCENDING" }
     ]
+  }, {
+    "collectionGroup": "posts",
+    "queryScope": "COLLECTION",
+    "fields": [
+      { "fieldPath": "authorId", "order": "ASCENDING" },
+      { "fieldPath": "status", "order": "ASCENDING" },
+      { "fieldPath": "createdAt", "order": "DESCENDING" }
+    ]
+  }, {
+    "collectionGroup": "comments",
+    "queryScope": "COLLECTION_GROUP",
+    "fields": [
+      { "fieldPath": "authorId", "order": "ASCENDING" },
+      { "fieldPath": "status", "order": "ASCENDING" },
+      { "fieldPath": "createdAt", "order": "DESCENDING" }
+    ]
   }],
   "fieldOverrides": []
 }

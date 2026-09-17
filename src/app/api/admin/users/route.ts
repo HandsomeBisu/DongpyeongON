@@ -21,6 +21,7 @@ export async function GET(request: Request) {
           displayName: data.displayName,
           email: data.email,
           role: normalizeUserRole(data.role),
+          verified: data.verified === true,
           suspension:
             suspension && suspension.endsAt > Date.now() ? suspension : null,
         };

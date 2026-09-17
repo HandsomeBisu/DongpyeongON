@@ -24,7 +24,7 @@ export function OnboardingPanel() {
     );
 
   return (
-    <main className="relative min-h-dvh overflow-hidden bg-[#f5f5f7] px-5 py-6 sm:grid sm:place-items-center sm:py-10">
+    <main className="relative min-h-dvh overflow-x-clip bg-[#f5f5f7] px-5 py-6 sm:grid sm:place-items-center sm:py-10">
       <div className="absolute -left-32 -top-36 size-96 rounded-full bg-blue-300/20 blur-3xl" />
       <div className="absolute -bottom-48 -right-32 size-[28rem] rounded-full bg-violet-300/20 blur-3xl" />
       <div className="relative mx-auto w-full max-w-2xl">

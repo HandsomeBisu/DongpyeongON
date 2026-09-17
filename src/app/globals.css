@@ -440,6 +440,27 @@ button:not(:disabled) {
     #242424 80%
   );
 }
+@keyframes comment-focus-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+.comment-focus-flash {
+  background-image: linear-gradient(
+    100deg,
+    rgb(0 122 255 / 8%) 20%,
+    rgb(0 122 255 / 16%) 42%,
+    rgb(255 255 255 / 90%) 50%,
+    rgb(0 122 255 / 16%) 58%,
+    rgb(0 122 255 / 8%) 80%
+  );
+  background-size: 220% 100%;
+  box-shadow: 0 0 0 1px rgb(0 122 255 / 12%);
+  animation: comment-focus-shimmer 0.9s ease-in-out 2;
+}
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

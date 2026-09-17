@@ -21,6 +21,7 @@ import { SpotifyAdminPlayer } from "@/components/admin/spotify-admin-player";
 import { ListSkeleton } from "@/components/ui/skeleton";
 import { adminFetch } from "@/lib/admin-fetch";
 import type { SongRequestRecord, SongRequestStatus } from "@/types/spotify";
+import { VerifiedName } from "@/components/verified-name";
 
 type View = SongRequestStatus;
 
@@ -273,7 +274,12 @@ function SongRow({
           {request.artists} · {request.albumName}
         </p>
         <p className="mt-2 text-xs text-[var(--muted)]">
-          {request.requestedByName} ·{" "}
+          <VerifiedName
+            name={request.requestedByName}
+            userId={request.requestedBy}
+            verified={request.requestedByVerified}
+          />{" "}
+          ·{" "}
           {request.requesterLabel || "학급 정보 없음"} ·{" "}
           {formatDate(request.createdAt)}
         </p>

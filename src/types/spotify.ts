@@ -17,6 +17,7 @@ export type SongRequestRecord = Omit<SpotifyTrack, "id"> & {
   spotifyTrackId: string;
   requestedBy: string;
   requestedByName: string;
+  requestedByVerified?: boolean;
   requesterLabel: string;
   status: SongRequestStatus;
   windowKey: string;

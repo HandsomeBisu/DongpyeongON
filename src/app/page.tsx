@@ -22,6 +22,7 @@ import { AuthButton } from "@/components/auth/auth-button";
 import { useAuth } from "@/components/auth/auth-provider";
 import { BrandLogo } from "@/components/brand-logo";
 import { NotificationCenter } from "@/components/notifications/notification-center";
+import { VerifiedName } from "@/components/verified-name";
 import { ListSkeleton, Skeleton } from "@/components/ui/skeleton";
 import { authenticatedFetch } from "@/lib/authenticated-fetch";
 import { markdownToPlainText } from "@/lib/markdown";
@@ -565,7 +566,10 @@ function PostPanel({
                 {emphasized && <Megaphone size={12} />}
                 {post.category}
               </span>
-              <span>{post.authorNickname}</span>
+              <VerifiedName
+                name={post.authorNickname}
+                userId={post.authorId}
+              />
               <span>·</span>
               <time>{formatPostDate(post.createdAt)}</time>
             </div>

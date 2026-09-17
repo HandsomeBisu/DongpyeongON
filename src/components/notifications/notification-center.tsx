@@ -16,6 +16,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { authenticatedFetch } from "@/lib/authenticated-fetch";
 import { ListSkeleton } from "@/components/ui/skeleton";
+import { VerificationBadge } from "@/components/verified-name";
 
 type NotificationItem = {
   id: string;
@@ -24,6 +25,7 @@ type NotificationItem = {
   body: string;
   href: string;
   createdAt: string | null;
+  actorVerified: boolean;
 };
 
 const iconByType = {
@@ -172,8 +174,13 @@ export function NotificationCenter() {
                             <Icon size={20} />
                           </span>
                           <span className="min-w-0 flex-1">
-                            <strong className="block break-keep text-sm leading-5">
-                              {item.title}
+                            <strong className="flex items-start gap-1 break-keep text-sm leading-5">
+                              <span>{item.title}</span>
+                              {item.actorVerified &&
+                                (item.type === "post_comment" ||
+                                  item.type === "post_like") && (
+                                <VerificationBadge className="mt-0.5" />
+                                )}
                             </strong>
                             {item.body && (
                               <span className="mt-1 block break-keep text-xs leading-5 text-[var(--muted)]">

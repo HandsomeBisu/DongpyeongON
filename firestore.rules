@@ -76,6 +76,12 @@ service cloud.firestore {
       allow delete: if hasRole('admin');
     }
 
+    match /verifiedUsers/{userId} {
+      // 인증 마크 목록은 로그인한 활성 사용자에게 공개하고 변경은 서버에서만 처리합니다.
+      allow read: if hasCompletedProfile();
+      allow write: if false;
+    }
+
     match /posts/{postId} {
       allow read: if hasCompletedProfile() && resource.data.status == 'published';
       // New posts are created by the trusted server route so six-character IDs

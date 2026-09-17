@@ -1,5 +1,5 @@
 "use client";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -15,6 +15,7 @@ import {
 import { useAuth } from "@/components/auth/auth-provider";
 import { MarkdownContent } from "@/components/community/markdown-content";
 import { SiteHeader } from "@/components/site-header";
+import { VerifiedName } from "@/components/verified-name";
 import {
   DetailSkeleton,
   ListSkeleton,
@@ -31,7 +32,13 @@ import {
   type PostComment,
 } from "@/lib/posts";
 
-export function PostDetail({ postId }: { postId: string }) {
+export function PostDetail({
+  postId,
+  focusCommentId,
+}: {
+  postId: string;
+  focusCommentId?: string;
+}) {
   const router = useRouter();
   const { user, configured } = useAuth();
   const [post, setPost] = useState<CommunityPost | null>();
@@ -46,6 +53,8 @@ export function PostDetail({ postId }: { postId: string }) {
   );
   const [editingCommentId, setEditingCommentId] = useState("");
   const [editingContent, setEditingContent] = useState("");
+  const [highlightedCommentId, setHighlightedCommentId] = useState("");
+  const focusedComment = useRef("");
   useEffect(() => {
     if (!configured || !user) return;
     const stops = [
@@ -60,6 +69,32 @@ export function PostDetail({ postId }: { postId: string }) {
     ];
     return () => stops.forEach((stop) => stop());
   }, [configured, postId, user]);
+  useEffect(() => {
+    if (
+      !focusCommentId ||
+      !commentsLoaded ||
+      focusedComment.current === focusCommentId ||
+      !comments.some((comment) => comment.id === focusCommentId)
+    )
+      return;
+    focusedComment.current = focusCommentId;
+    let highlightTimer = 0;
+    const frame = window.requestAnimationFrame(() => {
+      const element = document.getElementById(`comment-${focusCommentId}`);
+      if (!element) return;
+      element.scrollIntoView({ behavior: "smooth", block: "center" });
+      element.focus({ preventScroll: true });
+      setHighlightedCommentId(focusCommentId);
+      highlightTimer = window.setTimeout(
+        () => setHighlightedCommentId(""),
+        2_200,
+      );
+    });
+    return () => {
+      window.cancelAnimationFrame(frame);
+      if (highlightTimer) window.clearTimeout(highlightTimer);
+    };
+  }, [comments, commentsLoaded, focusCommentId]);
   async function remove() {
     if (!post) return;
     setBusy(true);
@@ -186,7 +221,12 @@ export function PostDetail({ postId }: { postId: string }) {
           <>
             <article className="ios-card p-5 sm:p-8">
               <div className="text-sm text-[var(--muted)]">
-                {post.category} · {post.authorNickname} ·{" "}
+                {post.category} ·{" "}
+                <VerifiedName
+                  name={post.authorNickname}
+                  userId={post.authorId}
+                />{" "}
+                ·{" "}
                 {formatPostDate(post.createdAt)}
               </div>
               <h1 className="mt-5 break-words text-2xl font-bold leading-tight sm:text-3xl">
@@ -262,10 +302,18 @@ export function PostDetail({ postId }: { postId: string }) {
               ) : (
                 <div className="mt-5 divide-y divide-[var(--border)]">
                   {comments.map((comment) => (
-                    <div key={comment.id} className="py-4">
+                    <div
+                      key={comment.id}
+                      id={`comment-${comment.id}`}
+                      tabIndex={-1}
+                      className={`scroll-mt-24 py-4 outline-none ${highlightedCommentId === comment.id ? "comment-focus-flash -mx-3 rounded-2xl px-3" : ""}`}
+                    >
                       <div className="flex items-start gap-3">
                         <div className="min-w-0 flex-1 text-sm font-semibold">
-                          {comment.authorNickname}{" "}
+                          <VerifiedName
+                            name={comment.authorNickname}
+                            userId={comment.authorId}
+                          />{" "}
                           <span className="font-normal text-[var(--muted)]">
                             · {formatPostDate(comment.createdAt)}
                             {comment.updatedAt && " · 수정됨"}

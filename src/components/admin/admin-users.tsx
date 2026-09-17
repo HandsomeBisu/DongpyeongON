@@ -5,6 +5,7 @@ import { ArrowLeft, Ban, Clock3, ShieldCheck, Users, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { SiteHeader } from "@/components/site-header";
 import { TableSkeleton } from "@/components/ui/skeleton";
+import { VerifiedName } from "@/components/verified-name";
 import { adminFetch } from "@/lib/admin-fetch";
 import type { UserRole } from "@/types/domain";
 import type { AccountSuspension } from "@/lib/account-suspension";
@@ -15,6 +16,7 @@ type UserRow = {
   email: string;
   role: UserRole;
   suspension: AccountSuspension | null;
+  verified: boolean;
 };
 
 function localDateTimeValue(time: number) {
@@ -73,6 +75,21 @@ export function AdminUsers() {
         "역할을 변경했습니다. 대상 사용자는 다시 로그인해야 적용됩니다.",
       );
     } else setMessage("역할을 변경하지 못했습니다.");
+  }
+
+  async function changeVerification(uid: string, verified: boolean) {
+    const response = await adminFetch(`/api/admin/users/${uid}/verification`, {
+      method: "PATCH",
+      body: JSON.stringify({ verified }),
+    });
+    if (response.ok) {
+      setUsers((rows) =>
+        rows.map((row) => (row.uid === uid ? { ...row, verified } : row)),
+      );
+      setMessage(
+        verified ? "인증 마크를 부여했습니다." : "인증 마크를 회수했습니다.",
+      );
+    } else setMessage("인증 마크 설정을 변경하지 못했습니다.");
   }
 
   function openSuspension(row: UserRow) {
@@ -196,7 +213,12 @@ export function AdminUsers() {
                 <div className="divide-y divide-[var(--border)] md:hidden">
                   {users.map((row) => (
                     <article key={row.uid} className="p-5">
-                      <strong className="block">{row.displayName}</strong>
+                      <strong className="block">
+                        <VerifiedName
+                          name={row.displayName}
+                          verified={row.verified}
+                        />
+                      </strong>
                       <p className="mt-1 break-all text-sm leading-5 text-[var(--muted)]">
                         {row.email}
                       </p>
@@ -217,6 +239,19 @@ export function AdminUsers() {
                           <option value="admin">관리자</option>
                         </select>
                       </label>
+                      <div className="mt-3 flex items-center justify-between gap-4 text-sm font-semibold">
+                        인증 마크
+                        <button
+                          type="button"
+                          aria-pressed={row.verified}
+                          onClick={() =>
+                            void changeVerification(row.uid, !row.verified)
+                          }
+                          className={`h-10 rounded-xl px-3 text-xs font-bold transition active:scale-95 ${row.verified ? "bg-[#e5f1ff] text-[#007aff]" : "bg-[#f5f5f7] text-[var(--muted)]"}`}
+                        >
+                          {row.verified ? "부여됨 · 회수" : "인증 마크 부여"}
+                        </button>
+                      </div>
                       <div className="mt-4 flex items-center justify-between gap-3 border-t border-[var(--border)] pt-4">
                         <span className={`text-xs font-bold ${row.suspension ? "text-[#ff3b30]" : "text-[var(--muted)]"}`}>
                           {row.suspension
@@ -241,6 +276,7 @@ export function AdminUsers() {
                         <th className="p-4">이름</th>
                         <th className="p-4">이메일</th>
                         <th className="p-4">역할</th>
+                        <th className="p-4">인증</th>
                         <th className="p-4">계정 상태</th>
                         <th className="p-4 text-right">관리</th>
                       </tr>
@@ -252,7 +288,10 @@ export function AdminUsers() {
                           className="border-t border-[var(--border)]"
                         >
                           <td className="p-4 font-semibold">
-                            {row.displayName}
+                            <VerifiedName
+                              name={row.displayName}
+                              verified={row.verified}
+                            />
                           </td>
                           <td className="p-4 text-sm text-[var(--muted)]">
                             {row.email}
@@ -272,6 +311,18 @@ export function AdminUsers() {
                               <option value="student_council">학생회</option>
                               <option value="admin">관리자</option>
                             </select>
+                          </td>
+                          <td className="p-4">
+                            <button
+                              type="button"
+                              aria-pressed={row.verified}
+                              onClick={() =>
+                                void changeVerification(row.uid, !row.verified)
+                              }
+                              className={`rounded-xl px-3 py-2 text-xs font-bold transition active:scale-95 ${row.verified ? "bg-[#e5f1ff] text-[#007aff]" : "bg-[#f5f5f7] text-[var(--muted)]"}`}
+                            >
+                              {row.verified ? "회수" : "부여"}
+                            </button>
                           </td>
                           <td className="p-4 text-sm">
                             {row.suspension ? (
@@ -348,7 +399,10 @@ export function AdminUsers() {
               <div>
                 <p className="text-sm font-bold text-[#ff3b30]">계정 이용 정지</p>
                 <h2 id="suspension-title" className="mt-1 text-2xl font-bold tracking-tight">
-                  {suspensionTarget.displayName}
+                  <VerifiedName
+                    name={suspensionTarget.displayName}
+                    verified={suspensionTarget.verified}
+                  />
                 </h2>
                 <p className="mt-1 break-all text-sm text-[var(--muted)]">
                   {suspensionTarget.email}

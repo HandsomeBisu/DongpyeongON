@@ -6,6 +6,7 @@ import { AuthProvider } from "@/components/auth/auth-provider";
 import { OnboardingGuard } from "@/components/auth/onboarding-guard";
 import { QueueHeartbeat } from "@/components/queue/queue-heartbeat";
 import { SiteFooter } from "@/components/site-footer";
+import { VerifiedUsersProvider } from "@/components/verified-name";
 
 export function AppShell({
   children,
@@ -16,15 +17,24 @@ export function AppShell({
 }) {
   const pathname = usePathname();
   if (pathname === "/waiting") return children;
+  const hideFooter = [
+    "/login",
+    "/verify-email",
+    "/onboarding",
+    "/mypage",
+    "/suspended",
+  ].includes(pathname);
 
   return (
     <AuthProvider>
-      {waitingRoomEnabled && <QueueHeartbeat />}
-      <OnboardingGuard>
-        {children}
-        {pathname !== "/suspended" && <SiteFooter />}
-        <AnnouncementPopup />
-      </OnboardingGuard>
+      <VerifiedUsersProvider>
+        {waitingRoomEnabled && <QueueHeartbeat />}
+        <OnboardingGuard>
+          {children}
+          {!hideFooter && <SiteFooter />}
+          <AnnouncementPopup />
+        </OnboardingGuard>
+      </VerifiedUsersProvider>
     </AuthProvider>
   );
 }

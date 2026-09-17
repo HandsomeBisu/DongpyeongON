@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { LogOut } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { VerifiedName } from "@/components/verified-name";
 import { useAuth } from "./auth-provider";
 
 export function AuthButton() {
@@ -34,9 +35,12 @@ export function AuthButton() {
       <div className="flex min-w-0 items-center gap-0.5 sm:gap-1">
         <Link
           href="/mypage"
-          className="max-w-24 truncate rounded-full bg-[#007aff] px-3 py-2 text-sm font-semibold text-white shadow-sm hover:scale-[1.03] hover:bg-[#0066d6] sm:max-w-40 sm:px-4"
+          className="max-w-28 rounded-full bg-[#007aff] px-3 py-2 text-sm font-semibold text-white shadow-sm hover:scale-[1.03] hover:bg-[#0066d6] sm:max-w-40 sm:px-4"
         >
-          {profile?.name || user?.displayName || "내 계정"}
+          <VerifiedName
+            name={profile?.name || user?.displayName || "내 계정"}
+            userId={user?.uid}
+          />
         </Link>
         <button
           type="button"

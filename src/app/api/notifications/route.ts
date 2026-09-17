@@ -1,6 +1,7 @@
 import { Timestamp } from "firebase-admin/firestore";
 import { apiError, verifyOnboardedApiRequest } from "@/lib/api-auth";
 import { getAdminDb } from "@/lib/firebase/admin";
+import { getVerifiedUserIds } from "@/lib/verified-users-admin";
 
 export async function GET(request: Request) {
   try {
@@ -10,6 +11,9 @@ export async function GET(request: Request) {
       .where("recipientId", "==", user.uid)
       .limit(100)
       .get();
+    const verifiedUsers = await getVerifiedUserIds(
+      snapshot.docs.map((document) => String(document.data().actorId ?? "")),
+    );
     const notifications = snapshot.docs
       .map((document) => {
         const data = document.data();
@@ -19,6 +23,7 @@ export async function GET(request: Request) {
           title: data.title,
           body: data.body ?? "",
           href: data.href ?? "",
+          actorVerified: verifiedUsers.has(String(data.actorId ?? "")),
           createdAt:
             data.createdAt instanceof Timestamp
               ? data.createdAt.toDate().toISOString()
