@@ -1,6 +1,5 @@
 const PUBLIC_WAITING_ROOM_PATHS = [
   "/",
-  "/login",
   "/verify-email",
   "/onboarding",
   "/privacy",
