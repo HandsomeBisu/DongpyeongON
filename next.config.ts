@@ -11,6 +11,11 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
+        hostname: "assets.dpsteam.kr",
+        pathname: "/brend/D-Black.png",
+      },
+      {
+        protocol: "https",
         hostname: "i.scdn.co",
         pathname: "/image/**",
       },

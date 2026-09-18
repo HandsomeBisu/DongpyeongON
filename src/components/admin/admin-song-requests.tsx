@@ -73,7 +73,7 @@ export function AdminSongRequests() {
         .filter((request) => request.status === view)
         .sort(
           (a, b) =>
-            dateValue(statusDate(b, view)) - dateValue(statusDate(a, view)),
+            dateValue(statusDate(a, view)) - dateValue(statusDate(b, view)),
         ),
     [requests, view],
   );
@@ -138,7 +138,7 @@ export function AdminSongRequests() {
               점심 방송 신청곡
             </h1>
             <p className="mt-2 break-keep text-sm leading-6 text-[var(--muted)] sm:text-base">
-              신청곡을 승인하고 최신 신청순으로 재생 목록을 관리해요.
+              신청곡을 승인하고 먼저 신청된 곡부터 재생 목록을 관리해요.
             </p>
           </div>
           <span className="hidden size-12 place-items-center rounded-2xl bg-[#e8f9ed] text-[#20a34a] sm:grid">
@@ -192,7 +192,7 @@ export function AdminSongRequests() {
               </span>
               <div>
                 <h2 className="text-sm font-bold">
-                  최신 신청곡부터 재생해 주세요
+                  먼저 신청된 곡부터 재생해 주세요
                 </h2>
                 <p className="mt-1 text-xs leading-5 text-[#497056]">
                   목록 재생 버튼을 누르면 위에서 아래 순서로 재생돼요. 끝까지
