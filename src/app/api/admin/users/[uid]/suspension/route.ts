@@ -2,6 +2,7 @@ import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { z } from "zod";
 import { verifyAdminCategoryRequest } from "@/lib/admin-session";
 import { apiError } from "@/lib/api-auth";
+import { parseAccountSuspension } from "@/lib/account-suspension";
 import { getAdminDb } from "@/lib/firebase/admin";
 
 const schema = z.discriminatedUnion("action", [
@@ -47,9 +48,15 @@ export async function PATCH(
         { status: 400 },
       );
 
+    const existingSuspension = parseAccountSuspension(
+      snapshot.data()?.suspension,
+    );
+    const startsAt = existingSuspension
+      ? new Date(existingSuspension.startsAt)
+      : now;
     const suspension = {
       reason: parsed.data.reason,
-      startsAt: Timestamp.fromDate(now),
+      startsAt: Timestamp.fromDate(startsAt),
       endsAt: Timestamp.fromDate(endsAt),
     };
     await reference.update({
@@ -60,10 +67,29 @@ export async function PATCH(
       ok: true,
       suspension: {
         reason: suspension.reason,
-        startsAt: now.getTime(),
+        startsAt: startsAt.getTime(),
         endsAt: endsAt.getTime(),
       },
     });
+  } catch (error) {
+    return apiError(error);
+  }
+}
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ uid: string }> },
+) {
+  try {
+    await verifyAdminCategoryRequest(request, "users");
+    const { uid } = await params;
+    const reference = getAdminDb().collection("users").doc(uid);
+    if (!(await reference.get()).exists) throw new Error("NOT_FOUND");
+    await reference.update({
+      suspension: FieldValue.delete(),
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+    return Response.json({ ok: true, suspension: null });
   } catch (error) {
     return apiError(error);
   }

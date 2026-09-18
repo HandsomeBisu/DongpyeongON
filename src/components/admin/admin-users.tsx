@@ -37,7 +37,9 @@ export function AdminUsers() {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
-  const [suspensionTarget, setSuspensionTarget] = useState<UserRow | null>(null);
+  const [suspensionTarget, setSuspensionTarget] = useState<UserRow | null>(
+    null,
+  );
   const [reason, setReason] = useState("");
   const [endsAt, setEndsAt] = useState("");
   const [suspensionReferenceTime, setSuspensionReferenceTime] = useState(0);
@@ -121,22 +123,26 @@ export function AdminUsers() {
     }
     setSuspensionError("");
     setSavingSuspension(true);
-    const response = await adminFetch(
-      `/api/admin/users/${suspensionTarget.uid}/suspension`,
-      {
-        method: "PATCH",
-        body: JSON.stringify({
-          action: "suspend",
-          reason: reason.trim(),
-          endsAt: end.toISOString(),
-        }),
-      },
-    );
-    const payload = (await response.json().catch(() => ({}))) as {
-      error?: string;
-      suspension?: AccountSuspension;
-    };
-    if (response.ok && payload.suspension) {
+    try {
+      const response = await adminFetch(
+        `/api/admin/users/${suspensionTarget.uid}/suspension`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({
+            action: "suspend",
+            reason: reason.trim(),
+            endsAt: end.toISOString(),
+          }),
+        },
+      );
+      const payload = (await response.json().catch(() => ({}))) as {
+        error?: string;
+        suspension?: AccountSuspension;
+      };
+      if (!response.ok || !payload.suspension)
+        throw new Error(
+          payload.error || "계정 이용 정지를 적용하지 못했습니다.",
+        );
       setUsers((rows) =>
         rows.map((row) =>
           row.uid === suspensionTarget.uid
@@ -144,34 +150,55 @@ export function AdminUsers() {
             : row,
         ),
       );
-      setMessage(`${suspensionTarget.displayName}님의 계정 이용을 정지했습니다.`);
-      setSuspensionTarget(null);
-    } else
-      setSuspensionError(
-        payload.error || "계정 이용 정지를 적용하지 못했습니다.",
+      setMessage(
+        suspensionTarget.suspension
+          ? `${suspensionTarget.displayName}님의 정지 내용을 변경했습니다.`
+          : `${suspensionTarget.displayName}님의 계정 이용을 정지했습니다.`,
       );
-    setSavingSuspension(false);
+      setSuspensionTarget(null);
+    } catch (caught) {
+      setSuspensionError(
+        caught instanceof Error && caught.message
+          ? caught.message
+          : "계정 이용 정지를 적용하지 못했습니다.",
+      );
+    } finally {
+      setSavingSuspension(false);
+    }
   }
 
   async function releaseSuspension() {
     if (!suspensionTarget) return;
+    setSuspensionError("");
     setSavingSuspension(true);
-    const response = await adminFetch(
-      `/api/admin/users/${suspensionTarget.uid}/suspension`,
-      { method: "PATCH", body: JSON.stringify({ action: "release" }) },
-    );
-    if (response.ok) {
+    try {
+      const response = await adminFetch(
+        `/api/admin/users/${suspensionTarget.uid}/suspension`,
+        { method: "DELETE" },
+      );
+      const payload = (await response.json().catch(() => ({}))) as {
+        error?: string;
+      };
+      if (!response.ok)
+        throw new Error(payload.error || "이용 정지를 해제하지 못했습니다.");
       setUsers((rows) =>
         rows.map((row) =>
-          row.uid === suspensionTarget.uid
-            ? { ...row, suspension: null }
-            : row,
+          row.uid === suspensionTarget.uid ? { ...row, suspension: null } : row,
         ),
       );
-      setMessage(`${suspensionTarget.displayName}님의 이용 정지를 해제했습니다.`);
+      setMessage(
+        `${suspensionTarget.displayName}님의 이용 정지를 해제했습니다.`,
+      );
       setSuspensionTarget(null);
-    } else setSuspensionError("이용 정지를 해제하지 못했습니다.");
-    setSavingSuspension(false);
+    } catch (caught) {
+      setSuspensionError(
+        caught instanceof Error && caught.message
+          ? caught.message
+          : "이용 정지를 해제하지 못했습니다.",
+      );
+    } finally {
+      setSavingSuspension(false);
+    }
   }
 
   return (
@@ -253,7 +280,9 @@ export function AdminUsers() {
                         </button>
                       </div>
                       <div className="mt-4 flex items-center justify-between gap-3 border-t border-[var(--border)] pt-4">
-                        <span className={`text-xs font-bold ${row.suspension ? "text-[#ff3b30]" : "text-[var(--muted)]"}`}>
+                        <span
+                          className={`text-xs font-bold ${row.suspension ? "text-[#ff3b30]" : "text-[var(--muted)]"}`}
+                        >
                           {row.suspension
                             ? `${formatDateTime(row.suspension.endsAt)}까지 정지`
                             : "이용 가능"}
@@ -330,7 +359,9 @@ export function AdminUsers() {
                                 <Ban size={14} /> 이용 정지
                               </span>
                             ) : (
-                              <span className="text-[var(--muted)]">이용 가능</span>
+                              <span className="text-[var(--muted)]">
+                                이용 가능
+                              </span>
                             )}
                           </td>
                           <td className="p-4 text-right">
@@ -397,8 +428,13 @@ export function AdminUsers() {
           <section className="page-enter my-auto w-full max-w-lg rounded-[28px] bg-white p-6 shadow-2xl sm:p-7">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-sm font-bold text-[#ff3b30]">계정 이용 정지</p>
-                <h2 id="suspension-title" className="mt-1 text-2xl font-bold tracking-tight">
+                <p className="text-sm font-bold text-[#ff3b30]">
+                  계정 이용 정지
+                </p>
+                <h2
+                  id="suspension-title"
+                  className="mt-1 text-2xl font-bold tracking-tight"
+                >
                   <VerifiedName
                     name={suspensionTarget.displayName}
                     verified={suspensionTarget.verified}
@@ -430,7 +466,10 @@ export function AdminUsers() {
               </div>
             )}
 
-            <label className="mt-6 block text-sm font-bold" htmlFor="suspension-reason">
+            <label
+              className="mt-6 block text-sm font-bold"
+              htmlFor="suspension-reason"
+            >
               정지 사유
             </label>
             <textarea
@@ -465,7 +504,10 @@ export function AdminUsers() {
               ))}
             </div>
 
-            <label className="mt-5 block text-sm font-bold" htmlFor="suspension-end">
+            <label
+              className="mt-5 block text-sm font-bold"
+              htmlFor="suspension-end"
+            >
               종료 일시 직접 선택
             </label>
             <input

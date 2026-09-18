@@ -1,7 +1,6 @@
 "use client";
 
-import { Clock3, LogOut, ShieldAlert } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { Clock3, ShieldAlert } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 
@@ -22,8 +21,7 @@ function remainingLabel(endsAt: number, now: number) {
 }
 
 export function SuspendedAccount() {
-  const router = useRouter();
-  const { profile, signOut } = useAuth();
+  const { profile } = useAuth();
   const [now, setNow] = useState(Date.now);
   const suspension = profile?.suspension;
 
@@ -71,17 +69,6 @@ export function SuspendedAccount() {
             <p className="mt-2 text-sm font-bold text-[#007aff]">{remaining}</p>
           </div>
         </dl>
-
-        <button
-          type="button"
-          onClick={() =>
-            void signOut().finally(() => router.replace("/login"))
-          }
-          className="mt-6 flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#1d1d1f] text-sm font-bold text-white transition active:scale-[0.98]"
-        >
-          <LogOut size={17} />
-          다른 계정으로 로그인
-        </button>
       </section>
     </main>
   );
