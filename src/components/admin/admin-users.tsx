@@ -35,6 +35,8 @@ function formatDateTime(time: number) {
 
 export function AdminUsers() {
   const [users, setUsers] = useState<UserRow[]>([]);
+  const [page, setPage] = useState(1);
+  const [totalUsers, setTotalUsers] = useState(0);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [suspensionTarget, setSuspensionTarget] = useState<UserRow | null>(
@@ -47,22 +49,39 @@ export function AdminUsers() {
   const [suspensionError, setSuspensionError] = useState("");
 
   useEffect(() => {
-    adminFetch("/api/admin/users")
+    const controller = new AbortController();
+    adminFetch(`/api/admin/users?page=${page}`, { signal: controller.signal })
       .then(async (response) => {
+        if (controller.signal.aborted) return;
         if (!response.ok) {
           setMessage(
             response.status === 423
               ? "사용자 관리 비밀번호 인증이 필요해요."
               : "사용자 목록을 불러오지 못했습니다.",
           );
+          setUsers([]);
           return;
         }
-        setUsers((await response.json()).users);
+        const data = (await response.json()) as { users: UserRow[]; total: number };
+        if (controller.signal.aborted) return;
+        setUsers(data.users);
+        setTotalUsers(data.total);
         setMessage("");
       })
-      .catch(() => setMessage("Firebase Admin 설정을 확인해 주세요."))
-      .finally(() => setLoading(false));
-  }, []);
+      .catch(() => { if (!controller.signal.aborted) setMessage("Firebase Admin 설정을 확인해 주세요."); })
+      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    return () => controller.abort();
+  }, [page]);
+
+  const totalPages = Math.max(1, Math.ceil(totalUsers / 10));
+  const firstVisiblePage = Math.max(1, Math.min(page - 2, totalPages - 4));
+
+  function goToPage(nextPage: number) {
+    if (nextPage === page || nextPage < 1 || nextPage > totalPages) return;
+    setLoading(true);
+    setMessage("");
+    setPage(nextPage);
+  }
 
   async function changeRole(uid: string, role: UserRole) {
     const response = await adminFetch(`/api/admin/users/${uid}/role`, {
@@ -382,6 +401,18 @@ export function AdminUsers() {
                   <div className="grid min-h-52 place-items-center px-5 text-center text-sm text-[var(--muted)]">
                     표시할 사용자가 없어요.
                   </div>
+                )}
+                {totalUsers > 0 && (
+                  <nav aria-label="사용자 목록 페이지" className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border)] px-5 py-4">
+                    <p className="text-xs text-[var(--muted)]">전체 {totalUsers}명 · {page} / {totalPages}페이지</p>
+                    <div className="flex items-center gap-1">
+                      <button type="button" disabled={page === 1} onClick={() => goToPage(page - 1)} className="rounded-lg px-3 py-2 text-xs font-semibold hover:bg-[#f5f5f7] disabled:opacity-40">이전</button>
+                      {Array.from({ length: Math.min(5, totalPages) }, (_, index) => firstVisiblePage + index).map((pageNumber) => (
+                        <button key={pageNumber} type="button" aria-current={page === pageNumber ? "page" : undefined} onClick={() => goToPage(pageNumber)} className={`grid size-9 place-items-center rounded-lg text-xs font-bold ${page === pageNumber ? "bg-[#007aff] text-white" : "hover:bg-[#f5f5f7]"}`}>{pageNumber}</button>
+                      ))}
+                      <button type="button" disabled={page === totalPages} onClick={() => goToPage(page + 1)} className="rounded-lg px-3 py-2 text-xs font-semibold hover:bg-[#f5f5f7] disabled:opacity-40">다음</button>
+                    </div>
+                  </nav>
                 )}
               </>
             )}

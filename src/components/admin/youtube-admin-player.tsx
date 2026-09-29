@@ -122,13 +122,13 @@ export function YouTubeAdminPlayer({ queue, onTrackCompleted }: { queue: SongReq
   return (
     <>
       <Script src="https://www.youtube.com/iframe_api" strategy="afterInteractive" onReady={() => { if (window.YT?.Player) setSdkReady(true); }} onError={() => setMessage("YouTube 플레이어를 불러오지 못했어요.")} />
-      <section ref={shellRef} className={`mb-5 flex flex-col gap-4 overflow-hidden bg-[#141414] p-4 text-white shadow-xl sm:p-6 ${isFullscreen ? "h-screen w-screen" : "rounded-3xl"}`}>
+      <section ref={shellRef} className={`mb-5 flex flex-col overflow-hidden bg-[#141414] text-white shadow-xl ${isFullscreen ? "h-screen w-screen gap-2 p-3 sm:p-4" : "gap-3 rounded-3xl p-3 sm:p-4"}`}>
         <div className="flex items-center justify-between gap-3">
-          <div className="min-w-0"><p className="text-xs font-bold uppercase tracking-[.18em] text-[#ff4545]">YouTube player</p><h2 className="mt-1 truncate text-lg font-bold sm:text-xl">{current?.name ?? "재생 중인 곡이 없어요"}</h2><p className="truncate text-sm text-white/60">{current?.artists ?? "승인된 목록을 재생해 보세요."}</p></div>
+          <div className="min-w-0"><h2 className="truncate text-lg font-bold sm:text-xl">{current?.name ?? "재생 중인 곡이 없어요"}</h2><p className="truncate text-sm text-white/60">{current?.artists ?? "승인된 목록을 재생해 보세요."}</p></div>
           <button type="button" onClick={() => void toggleFullscreen()} aria-label={isFullscreen ? "전체화면 닫기" : "전체화면으로 보기"} className="grid size-10 shrink-0 place-items-center rounded-full bg-white/10 hover:bg-white/20">{isFullscreen ? <Minimize2 size={18} /> : <Expand size={18} />}</button>
         </div>
         <div className="flex min-h-0 flex-1 items-center justify-center">
-          <div className={`aspect-video overflow-hidden rounded-xl bg-black ${isFullscreen ? "h-auto max-h-[65vh] w-full max-w-[min(100%,calc(65vh*16/9))]" : "w-full max-w-5xl"}`} ref={hostRef} aria-label="YouTube 영상 플레이어" />
+          <div className={`aspect-video overflow-hidden rounded-xl bg-black ${isFullscreen ? "max-h-[70vh] w-full max-w-[min(100%,calc(70vh*16/9))]" : "w-full max-w-6xl"}`} ref={hostRef} aria-label="YouTube 영상 플레이어" />
         </div>
         <div className="flex flex-wrap items-center gap-3">
           {current?.albumImageUrl ? <Image src={current.albumImageUrl} alt={`${current.albumName} 앨범 표지`} width={48} height={48} className="size-12 rounded-lg object-cover" /> : <span className="grid size-12 place-items-center rounded-lg bg-white/10"><Music2 size={20} /></span>}
@@ -139,9 +139,14 @@ export function YouTubeAdminPlayer({ queue, onTrackCompleted }: { queue: SongReq
             <button type="button" aria-label="다음 곡" onClick={() => changeTrack(1)} disabled={!current} className="grid size-9 place-items-center rounded-full text-white/70 hover:text-white disabled:opacity-30"><SkipForward size={19} fill="currentColor" /></button>
           </div>
         </div>
-        <div className="flex items-center gap-3 text-xs text-white/55"><span>{formatTime(position)}</span><input type="range" aria-label="재생 위치" min={0} max={Math.max(duration, 1)} value={Math.min(position, duration || 1)} onChange={(event) => playerRef.current?.seekTo(Number(event.target.value), true)} disabled={!current} className="h-1 flex-1 accent-[#ff4545]" /><span>{formatTime(duration)}</span></div>
-        <label className="flex w-40 items-center gap-2 text-white/65"><Volume2 size={17} /><input type="range" aria-label="음량" min={0} max={100} value={volume} onChange={(event) => { const next = Number(event.target.value); setVolume(next); playerRef.current?.setVolume(next); }} disabled={!playerReady} className="h-1 flex-1 accent-[#ff4545]" /></label>
-        {!isFullscreen && <button type="button" disabled={!playerReady || !playableCount} onClick={() => { const first = queueRef.current.find((item) => item.youtubeVideoId); if (first) playRequest(first); }} className="inline-flex h-10 self-start items-center gap-2 rounded-full bg-[#ff4545] px-4 text-sm font-bold text-white disabled:opacity-40"><ListMusic size={16} />목록 재생</button>}
+        <div className="flex items-center gap-3 text-xs text-white/55"><span>{formatTime(position)}</span><input type="range" aria-label="재생 위치" min={0} max={Math.max(duration, 1)} value={Math.min(position, duration || 1)} onChange={(event) => playerRef.current?.seekTo(Number(event.target.value), true)} disabled={!current} className="h-1 flex-1 accent-[#64d2ff]" /><span>{formatTime(duration)}</span></div>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="flex w-40 items-center gap-2 text-white/65"><Volume2 size={17} /><input type="range" aria-label="음량" min={0} max={100} value={volume} onChange={(event) => { const next = Number(event.target.value); setVolume(next); playerRef.current?.setVolume(next); }} disabled={!playerReady} className="h-1 flex-1 accent-[#64d2ff]" /></label>
+            {!isFullscreen && <button type="button" disabled={!playerReady || !playableCount} onClick={() => { const first = queueRef.current.find((item) => item.youtubeVideoId); if (first) playRequest(first); }} className="inline-flex h-10 items-center gap-2 rounded-full bg-[#64d2ff] px-4 text-sm font-bold text-[#101820] disabled:opacity-40"><ListMusic size={16} />목록 재생</button>}
+          </div>
+          <div className="flex items-center gap-2 rounded-xl bg-white/90 px-3 py-2 text-[#171719] shadow-lg"><span className="text-xs font-semibold tracking-tight">Powered by. DPS Team</span><Image src="https://assets.dpsteam.kr/brend/D-Black.png" alt="DPS Team" width={84} height={32} className="h-5 w-auto object-contain" /></div>
+        </div>
         {message && <p role="status" className="rounded-xl bg-white/10 px-3 py-2 text-xs text-white/75">{message}</p>}
         {!playableCount && <p className="text-xs text-amber-200">재생하려면 승인된 곡에 YouTube 영상을 선택해 주세요.</p>}
       </section>
