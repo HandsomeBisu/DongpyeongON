@@ -8,7 +8,7 @@ export type YouTubeCandidate = {
 };
 
 export class YouTubeApiError extends Error {
-  constructor(public readonly status: number) {
+  constructor(public readonly status: number, public readonly reason: string) {
     super("YOUTUBE_API_ERROR");
   }
 }
@@ -19,7 +19,15 @@ async function youtubeGet(path: string, params: Record<string, string>) {
   const url = new URL(`https://www.googleapis.com/youtube/v3/${path}`);
   for (const [name, value] of Object.entries(params)) url.searchParams.set(name, value);
   const response = await fetch(url, { cache: "no-store", headers: { "x-goog-api-key": key } });
-  if (!response.ok) throw new YouTubeApiError(response.status);
+  if (!response.ok) {
+    const body = await response.json().catch(() => null) as {
+      error?: { status?: string; errors?: Array<{ reason?: string }>; details?: Array<{ reason?: string }> };
+    } | null;
+    const reason = body?.error?.details?.find((detail) => detail.reason)?.reason
+      ?? body?.error?.errors?.[0]?.reason ?? body?.error?.status ?? "unknown";
+    console.error("YouTube Data API request failed", { path, status: response.status, reason });
+    throw new YouTubeApiError(response.status, reason);
+  }
   return response.json();
 }
 

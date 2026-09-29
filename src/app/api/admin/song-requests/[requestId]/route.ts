@@ -36,9 +36,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ re
     return Response.json({ ok: true, youtubeVideo });
   } catch (error) {
     if (error instanceof Error && error.message === "YOUTUBE_NOT_CONFIGURED")
-      return Response.json({ error: "YouTube API 키를 설정해 주세요." }, { status: 503 });
+      return Response.json({ error: "YouTube API 키를 설정해 주세요." }, { status: 424 });
     if (error instanceof YouTubeApiError)
-      return Response.json({ error: "YouTube 영상 정보를 확인하지 못했어요." }, { status: 502 });
+      return Response.json({ error: `YouTube 영상 정보를 확인하지 못했어요. Google 응답 코드: ${error.status}, 사유: ${error.reason}`, reason: error.reason }, { status: 424 });
     return apiError(error);
   }
 }
