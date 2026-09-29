@@ -15,9 +15,11 @@ export function YouTubeAdminPlayer({ queue, onTrackCompleted }: { queue: SongReq
   const completedRef = useRef(onTrackCompleted);
   const currentRef = useRef<SongRequestRecord | null>(null);
   const endingRef = useRef(false);
+  const intermissionTimerRef = useRef<number | null>(null);
   const [sdkReady, setSdkReady] = useState(false);
   const [playerReady, setPlayerReady] = useState(false);
   const [current, setCurrent] = useState<SongRequestRecord | null>(null);
+  const [upNext, setUpNext] = useState<SongRequestRecord | null>(null);
   const [playing, setPlaying] = useState(false);
   const [position, setPosition] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -27,6 +29,9 @@ export function YouTubeAdminPlayer({ queue, onTrackCompleted }: { queue: SongReq
 
   useEffect(() => { queueRef.current = queue; }, [queue]);
   useEffect(() => { completedRef.current = onTrackCompleted; }, [onTrackCompleted]);
+  useEffect(() => () => {
+    if (intermissionTimerRef.current !== null) window.clearTimeout(intermissionTimerRef.current);
+  }, []);
 
   useEffect(() => {
     const onChange = () => setIsFullscreen(document.fullscreenElement === shellRef.current);
@@ -36,13 +41,33 @@ export function YouTubeAdminPlayer({ queue, onTrackCompleted }: { queue: SongReq
 
   const playRequest = useCallback((request: SongRequestRecord) => {
     if (!request.youtubeVideoId || !playerRef.current) return;
+    if (intermissionTimerRef.current !== null) window.clearTimeout(intermissionTimerRef.current);
+    intermissionTimerRef.current = null;
     currentRef.current = request;
     setCurrent(request);
+    setUpNext(null);
     setPosition(0);
     setDuration(0);
     setMessage("");
     playerRef.current.loadVideoById(request.youtubeVideoId);
   }, []);
+
+  const announceNext = useCallback((next: SongRequestRecord) => {
+    if (intermissionTimerRef.current !== null) window.clearTimeout(intermissionTimerRef.current);
+    playerRef.current?.pauseVideo();
+    currentRef.current = null;
+    setCurrent(null);
+    setPlaying(false);
+    setPosition(0);
+    setDuration(0);
+    setUpNext(next);
+    intermissionTimerRef.current = window.setTimeout(() => {
+      intermissionTimerRef.current = null;
+      const queued = queueRef.current.find((item) => item.id === next.id && item.youtubeVideoId);
+      if (queued) playRequest(queued);
+      else { setUpNext(null); setMessage("다음 곡을 재생 목록에서 찾을 수 없어요."); }
+    }, 5_000);
+  }, [playRequest]);
 
   const finishCurrent = useCallback(async () => {
     const finished = currentRef.current;
@@ -52,13 +77,14 @@ export function YouTubeAdminPlayer({ queue, onTrackCompleted }: { queue: SongReq
     const next = queueRef.current.slice(index + 1).find((item) => item.youtubeVideoId);
     try {
       if (await completedRef.current(finished.id)) {
-        if (next) playRequest(next);
+        if (currentRef.current?.id !== finished.id) return;
+        if (next) announceNext(next);
         else { currentRef.current = null; setCurrent(null); setMessage("재생 목록이 끝났어요."); }
       } else setMessage("재생 완료 처리를 하지 못했어요. 다시 시도해 주세요.");
     } finally {
       endingRef.current = false;
     }
-  }, [playRequest]);
+  }, [announceNext]);
 
   useEffect(() => {
     const onReady = () => setSdkReady(true);
@@ -95,7 +121,7 @@ export function YouTubeAdminPlayer({ queue, onTrackCompleted }: { queue: SongReq
   }, [sdkReady, finishCurrent]);
 
   useEffect(() => {
-    if (!playerReady) return;
+    if (!playerReady || upNext) return;
     const timer = window.setInterval(() => {
       const player = playerRef.current;
       if (!player) return;
@@ -103,13 +129,16 @@ export function YouTubeAdminPlayer({ queue, onTrackCompleted }: { queue: SongReq
       setDuration(player.getDuration() || 0);
     }, 500);
     return () => window.clearInterval(timer);
-  }, [playerReady]);
+  }, [playerReady, upNext]);
 
   function changeTrack(direction: -1 | 1) {
     const playable = queueRef.current.filter((item) => item.youtubeVideoId);
     const index = playable.findIndex((item) => item.id === currentRef.current?.id);
     const next = playable[index + direction];
-    if (next) playRequest(next);
+    if (next) {
+      if (direction === 1) announceNext(next);
+      else playRequest(next);
+    }
   }
 
   async function toggleFullscreen() {
@@ -127,13 +156,25 @@ export function YouTubeAdminPlayer({ queue, onTrackCompleted }: { queue: SongReq
       <Script src="https://www.youtube.com/iframe_api" strategy="afterInteractive" onReady={() => { if (window.YT?.Player) setSdkReady(true); }} onError={() => setMessage("YouTube 플레이어를 불러오지 못했어요.")} />
       <section ref={shellRef} className={`mb-5 flex flex-col overflow-hidden bg-[#141414] text-white shadow-xl ${isFullscreen ? "h-dvh w-screen gap-2 p-3 sm:p-4" : "gap-3 rounded-3xl p-3 sm:p-4"}`}>
         <div className="flex items-center justify-between gap-3">
-          <div className="min-w-0"><h2 className="truncate text-lg font-bold sm:text-xl">{current?.name ?? "재생 중인 곡이 없어요"}</h2><p className="truncate text-sm text-white/60">{current?.artists ?? "승인된 목록을 재생해 보세요."}</p></div>
+          <div className="min-w-0"><h2 className="truncate text-lg font-bold sm:text-xl">{upNext ? "잠시 후 다음 곡" : current?.name ?? "재생 중인 곡이 없어요"}</h2><p className="truncate text-sm text-white/60">{upNext ? `${upNext.name} · ${upNext.artists}` : current?.artists ?? "승인된 목록을 재생해 보세요."}</p></div>
           <button type="button" onClick={() => void toggleFullscreen()} aria-label={isFullscreen ? "전체화면 닫기" : "전체화면으로 보기"} className="grid size-10 shrink-0 place-items-center rounded-full bg-white/10 hover:bg-white/20">{isFullscreen ? <Minimize2 size={18} /> : <Expand size={18} />}</button>
         </div>
         <div className="flex min-h-0 flex-1 items-center justify-center">
           <div className={`relative aspect-video overflow-hidden rounded-xl bg-black ${isFullscreen ? "w-full max-w-[min(100%,calc((100dvh-14rem)*16/9))]" : "w-full max-w-[1600px]"}`} aria-label="YouTube 영상 플레이어">
             <div ref={hostRef} className="pointer-events-none absolute inset-0" />
             <div aria-hidden="true" className="absolute inset-0 z-10 bg-transparent" />
+            {upNext && (
+              <div className="absolute inset-0 z-20 flex items-center justify-center gap-3 bg-[#101820] p-3 text-white sm:gap-6 sm:p-6">
+                <div className="min-w-0 max-w-xl flex-1">
+                  <p className="text-xs font-bold tracking-[0.2em] text-[#64d2ff] sm:text-sm">DONGPYEONGON</p>
+                  <p className="mt-2 break-keep text-lg font-bold leading-tight sm:mt-4 sm:text-3xl lg:text-5xl">신청곡은 DongpyeongON 사이트에서 신청할 수 있어요.</p>
+                  <p className="mt-2 text-xs text-white/65 sm:mt-5 sm:text-base">QR코드를 스캔해 신청곡 페이지로 이동하세요.</p>
+                  <p className="mt-2 break-all text-[10px] text-[#64d2ff] sm:text-sm">dpon.dpsteam.kr/music</p>
+                  <p className="mt-3 text-xs text-white/50 sm:mt-6 sm:text-sm">5초 후 다음 곡이 재생됩니다.</p>
+                </div>
+                <Image src="/music-request-qr.svg" alt="DongpyeongON 신청곡 페이지 QR코드" width={440} height={440} unoptimized className="size-28 shrink-0 rounded-lg bg-white p-1 sm:size-48 sm:p-2 lg:size-72 xl:size-80" />
+              </div>
+            )}
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">
