@@ -6,7 +6,7 @@ declare global {
       Player: new (element: HTMLElement, options: {
         width: string;
         height: string;
-        playerVars: { controls: number; playsinline: number; origin: string };
+        playerVars: { controls: number; disablekb: number; playsinline: number; origin: string };
         events: {
           onReady: () => void;
           onStateChange: (event: { data: number }) => void;
@@ -27,4 +27,5 @@ export type YouTubePlayer = {
   seekTo(seconds: number, allowSeekAhead: boolean): void;
   getCurrentTime(): number;
   getDuration(): number;
+  setVolume(volume: number): void;
 };

@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Script from "next/script";
-import { Expand, ListMusic, Minimize2, Music2, Pause, Play, SkipBack, SkipForward } from "lucide-react";
+import { Expand, ListMusic, Minimize2, Music2, Pause, Play, SkipBack, SkipForward, Volume2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { SongRequestRecord } from "@/types/spotify";
 import type { YouTubePlayer } from "@/types/youtube-iframe";
@@ -21,6 +21,7 @@ export function YouTubeAdminPlayer({ queue, onTrackCompleted }: { queue: SongReq
   const [playing, setPlaying] = useState(false);
   const [position, setPosition] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [volume, setVolume] = useState(100);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -73,12 +74,12 @@ export function YouTubeAdminPlayer({ queue, onTrackCompleted }: { queue: SongReq
     const player = new window.YT.Player(mount, {
       width: "100%",
       height: "100%",
-      playerVars: { controls: 1, playsinline: 1, origin: window.location.origin },
+      playerVars: { controls: 0, disablekb: 1, playsinline: 1, origin: window.location.origin },
       events: {
         onReady: () => setPlayerReady(true),
         onStateChange: ({ data }) => { setPlaying(data === 1); if (data === 0) void finishCurrent(); },
         onError: () => setMessage("이 영상은 재생할 수 없어요. 다른 영상을 선택해 주세요."),
-        onAutoplayBlocked: () => setMessage("브라우저가 자동 재생을 막았어요. 영상의 재생 버튼을 눌러 주세요."),
+        onAutoplayBlocked: () => setMessage("브라우저가 자동 재생을 막았어요. 아래 재생 버튼을 눌러 주세요."),
       },
     });
     playerRef.current = player;
@@ -139,6 +140,7 @@ export function YouTubeAdminPlayer({ queue, onTrackCompleted }: { queue: SongReq
           </div>
         </div>
         <div className="flex items-center gap-3 text-xs text-white/55"><span>{formatTime(position)}</span><input type="range" aria-label="재생 위치" min={0} max={Math.max(duration, 1)} value={Math.min(position, duration || 1)} onChange={(event) => playerRef.current?.seekTo(Number(event.target.value), true)} disabled={!current} className="h-1 flex-1 accent-[#ff4545]" /><span>{formatTime(duration)}</span></div>
+        <label className="flex w-40 items-center gap-2 text-white/65"><Volume2 size={17} /><input type="range" aria-label="음량" min={0} max={100} value={volume} onChange={(event) => { const next = Number(event.target.value); setVolume(next); playerRef.current?.setVolume(next); }} disabled={!playerReady} className="h-1 flex-1 accent-[#ff4545]" /></label>
         {!isFullscreen && <button type="button" disabled={!playerReady || !playableCount} onClick={() => { const first = queueRef.current.find((item) => item.youtubeVideoId); if (first) playRequest(first); }} className="inline-flex h-10 self-start items-center gap-2 rounded-full bg-[#ff4545] px-4 text-sm font-bold text-white disabled:opacity-40"><ListMusic size={16} />목록 재생</button>}
         {message && <p role="status" className="rounded-xl bg-white/10 px-3 py-2 text-xs text-white/75">{message}</p>}
         {!playableCount && <p className="text-xs text-amber-200">재생하려면 승인된 곡에 YouTube 영상을 선택해 주세요.</p>}
