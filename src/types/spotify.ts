@@ -26,5 +26,7 @@ export type SongRequestRecord = Omit<SpotifyTrack, "id"> & {
   approvedAt?: string | null;
   rejectedAt?: string | null;
   playedAt?: string | null;
+  youtubeVideoId?: string | null;
+  youtubeVideoTitle?: string | null;
   limitResetsAt: string;
 };

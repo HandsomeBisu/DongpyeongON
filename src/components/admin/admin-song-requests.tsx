@@ -17,13 +17,14 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { SiteHeader } from "@/components/site-header";
-import { SpotifyAdminPlayer } from "@/components/admin/spotify-admin-player";
+import { YouTubeAdminPlayer } from "@/components/admin/youtube-admin-player";
 import { ListSkeleton } from "@/components/ui/skeleton";
 import { adminFetch } from "@/lib/admin-fetch";
 import type { SongRequestRecord, SongRequestStatus } from "@/types/spotify";
 import { VerifiedName } from "@/components/verified-name";
 
 type View = SongRequestStatus;
+type VideoCandidate = { videoId: string; title: string; channelTitle: string; thumbnailUrl: string };
 
 const views: Array<{ id: View; label: string }> = [
   { id: "pending", label: "승인 대기" },
@@ -78,13 +79,13 @@ export function AdminSongRequests() {
     [requests, view],
   );
 
-  async function changeStatus(id: string, status: SongRequestStatus) {
+  async function changeStatus(id: string, status: SongRequestStatus, youtubeVideoId?: string) {
     setBusy(id);
     setMessage("");
     try {
       const response = await adminFetch(`/api/admin/song-requests/${id}`, {
         method: "PATCH",
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status, youtubeVideoId }),
       });
       if (!response.ok) {
         const data = (await response.json().catch(() => ({}))) as {
@@ -93,6 +94,7 @@ export function AdminSongRequests() {
         setMessage(data.error ?? "처리 상태를 변경하지 못했어요.");
         return false;
       }
+      const result = (await response.json()) as { youtubeVideo?: { videoId: string; title: string } };
       const changedAt = new Date().toISOString();
       setRequests((items) =>
         items.map((item) =>
@@ -104,11 +106,12 @@ export function AdminSongRequests() {
                 ...(status === "approved" ? { approvedAt: changedAt } : {}),
                 ...(status === "rejected" ? { rejectedAt: changedAt } : {}),
                 ...(status === "played" ? { playedAt: changedAt } : {}),
+                ...(result.youtubeVideo ? { youtubeVideoId: result.youtubeVideo.videoId, youtubeVideoTitle: result.youtubeVideo.title } : {}),
               }
             : item,
         ),
       );
-      setMessage(statusMessage(status));
+      setMessage(status === "approved" && requests.find((item) => item.id === id)?.status === "approved" ? "선택한 YouTube 영상을 저장했어요." : statusMessage(status));
       return true;
     } catch {
       setMessage("처리 상태를 변경하지 못했어요.");
@@ -177,7 +180,7 @@ export function AdminSongRequests() {
         )}
         {view === "approved" && (
           <>
-            <SpotifyAdminPlayer
+            <YouTubeAdminPlayer
               queue={visibleRequests}
               onTrackCompleted={async (id) => {
                 const completed = await changeStatus(id, "played");
@@ -195,7 +198,7 @@ export function AdminSongRequests() {
                   먼저 신청된 곡부터 재생해 주세요
                 </h2>
                 <p className="mt-1 text-xs leading-5 text-[#497056]">
-                  목록 재생 버튼을 누르면 위에서 아래 순서로 재생돼요. 끝까지
+                  선택한 YouTube 영상을 위에서 아래 순서로 재생해요. 끝까지
                   재생된 곡은 자동으로 재생 완료 목록으로 이동합니다.
                 </p>
               </div>
@@ -237,8 +240,37 @@ function SongRow({
   index: number;
   view: View;
   busy: boolean;
-  onStatusChange: (id: string, status: SongRequestStatus) => Promise<boolean>;
+  onStatusChange: (id: string, status: SongRequestStatus, youtubeVideoId?: string) => Promise<boolean>;
 }) {
+  const [showVideos, setShowVideos] = useState(false);
+  const [candidates, setCandidates] = useState<VideoCandidate[]>([]);
+  const [selectedVideoId, setSelectedVideoId] = useState("");
+  const [videoLoading, setVideoLoading] = useState(false);
+  const [videoError, setVideoError] = useState("");
+
+  async function openVideoPicker() {
+    setShowVideos(true);
+    setVideoLoading(true);
+    setVideoError("");
+    setSelectedVideoId("");
+    setCandidates([]);
+    try {
+      const response = await adminFetch(`/api/admin/youtube/candidates?requestId=${encodeURIComponent(request.id)}`);
+      const data = await response.json() as { candidates?: VideoCandidate[]; error?: string };
+      if (!response.ok) throw new Error(data.error ?? "영상 후보를 불러오지 못했어요.");
+      setCandidates(data.candidates ?? []);
+    } catch (error) {
+      setVideoError(error instanceof Error ? error.message : "영상 후보를 불러오지 못했어요.");
+    } finally {
+      setVideoLoading(false);
+    }
+  }
+
+  async function approveVideo() {
+    if (!selectedVideoId) return;
+    if (await onStatusChange(request.id, "approved", selectedVideoId)) setShowVideos(false);
+  }
+
   return (
     <article className="grid gap-4 p-4 sm:grid-cols-[72px_minmax(0,1fr)_auto] sm:items-center sm:p-5">
       <div className="relative">
@@ -288,6 +320,9 @@ function SongRow({
             {formatDate(request.playedAt)} 재생 완료
           </p>
         )}
+        {request.youtubeVideoTitle && (view === "approved" || view === "played") && (
+          <p className="mt-2 truncate text-xs text-[#18863b]">선택한 영상: {request.youtubeVideoTitle}</p>
+        )}
         {view === "rejected" && request.rejectedAt && (
           <p className="mt-1 text-xs font-medium text-[#ff3b30]">
             {formatDate(request.rejectedAt)} 반려
@@ -309,26 +344,17 @@ function SongRow({
             <button
               type="button"
               disabled={busy}
-              onClick={() => void onStatusChange(request.id, "approved")}
+              onClick={() => void openVideoPicker()}
               className="inline-flex h-10 items-center gap-1.5 rounded-full bg-[#20a34a] px-4 text-sm font-semibold text-white shadow-sm hover:bg-[#18863b] disabled:opacity-50"
             >
               <Check size={16} />
-              승인
+              영상 선택 후 승인
             </button>
           </>
         )}
         {view === "approved" && (
           <>
-            <a
-              href={request.spotifyUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex h-10 items-center gap-1.5 rounded-full bg-[#191414] px-4 text-sm font-semibold text-white hover:scale-[1.02]"
-            >
-              <Play size={15} fill="currentColor" />
-              Spotify에서 재생
-              <ExternalLink size={13} />
-            </a>
+            <button type="button" disabled={busy} onClick={() => void openVideoPicker()} className="inline-flex h-10 items-center gap-1.5 rounded-full border border-[var(--border)] px-4 text-sm font-semibold hover:bg-[#f5f5f7] disabled:opacity-50">{request.youtubeVideoId ? "영상 변경" : "영상 선택"}</button>
             <button
               type="button"
               disabled={busy}
@@ -363,6 +389,25 @@ function SongRow({
           </button>
         )}
       </div>
+      {showVideos && (
+        <div className="rounded-2xl border border-[var(--border)] bg-[#f8f8fa] p-4 sm:col-span-3">
+          <div className="flex items-center justify-between gap-3"><h3 className="text-sm font-bold">YouTube 영상 선택</h3><button type="button" onClick={() => setShowVideos(false)} aria-label="영상 선택 닫기" className="rounded-full p-2 hover:bg-black/5"><X size={16} /></button></div>
+          {videoLoading && <p className="mt-3 text-sm text-[var(--muted)]">영상 후보를 찾고 있어요...</p>}
+          {videoError && <p role="alert" className="mt-3 text-sm text-red-600">{videoError}</p>}
+          {!videoLoading && !videoError && !candidates.length && <p className="mt-3 text-sm text-[var(--muted)]">재생 가능한 영상 후보가 없어요.</p>}
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            {!videoLoading && candidates.map((candidate) => (
+              <label key={candidate.videoId} className={`flex cursor-pointer items-center gap-3 rounded-xl border p-2 ${selectedVideoId === candidate.videoId ? "border-[#20a34a] bg-[#e8f9ed]" : "border-[var(--border)] bg-white"}`}>
+                <input type="radio" name={`video-${request.id}`} value={candidate.videoId} checked={selectedVideoId === candidate.videoId} onChange={() => setSelectedVideoId(candidate.videoId)} className="accent-[#20a34a]" />
+                <Image src={candidate.thumbnailUrl} alt="" width={96} height={54} className="aspect-video w-24 shrink-0 rounded-lg object-cover" />
+                <span className="min-w-0 flex-1"><span className="line-clamp-2 text-xs font-semibold">{candidate.title}</span><span className="mt-1 block truncate text-[11px] text-[var(--muted)]">{candidate.channelTitle}</span></span>
+                <a href={`https://www.youtube.com/watch?v=${candidate.videoId}`} target="_blank" rel="noreferrer" aria-label={`${candidate.title} YouTube에서 확인`} onClick={(event) => event.stopPropagation()} className="rounded-full p-2 hover:bg-black/5"><ExternalLink size={15} /></a>
+              </label>
+            ))}
+          </div>
+          <div className="mt-4 flex justify-end"><button type="button" disabled={!selectedVideoId || busy} onClick={() => void approveVideo()} className="rounded-full bg-[#20a34a] px-5 py-2.5 text-sm font-bold text-white disabled:opacity-40">{view === "approved" ? "선택한 영상 저장" : "이 영상으로 승인"}</button></div>
+        </div>
+      )}
     </article>
   );
 }
