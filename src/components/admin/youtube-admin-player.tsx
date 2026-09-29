@@ -76,7 +76,10 @@ export function YouTubeAdminPlayer({ queue, onTrackCompleted }: { queue: SongReq
       height: "100%",
       playerVars: { controls: 0, disablekb: 1, playsinline: 1, origin: window.location.origin },
       events: {
-        onReady: () => setPlayerReady(true),
+        onReady: () => {
+          hostRef.current?.querySelector("iframe")?.setAttribute("tabindex", "-1");
+          setPlayerReady(true);
+        },
         onStateChange: ({ data }) => { setPlaying(data === 1); if (data === 0) void finishCurrent(); },
         onError: () => setMessage("이 영상은 재생할 수 없어요. 다른 영상을 선택해 주세요."),
         onAutoplayBlocked: () => setMessage("브라우저가 자동 재생을 막았어요. 아래 재생 버튼을 눌러 주세요."),
@@ -122,13 +125,16 @@ export function YouTubeAdminPlayer({ queue, onTrackCompleted }: { queue: SongReq
   return (
     <>
       <Script src="https://www.youtube.com/iframe_api" strategy="afterInteractive" onReady={() => { if (window.YT?.Player) setSdkReady(true); }} onError={() => setMessage("YouTube 플레이어를 불러오지 못했어요.")} />
-      <section ref={shellRef} className={`mb-5 flex flex-col overflow-hidden bg-[#141414] text-white shadow-xl ${isFullscreen ? "h-screen w-screen gap-2 p-3 sm:p-4" : "gap-3 rounded-3xl p-3 sm:p-4"}`}>
+      <section ref={shellRef} className={`mb-5 flex flex-col overflow-hidden bg-[#141414] text-white shadow-xl ${isFullscreen ? "h-dvh w-screen gap-2 p-3 sm:p-4" : "gap-3 rounded-3xl p-3 sm:p-4"}`}>
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0"><h2 className="truncate text-lg font-bold sm:text-xl">{current?.name ?? "재생 중인 곡이 없어요"}</h2><p className="truncate text-sm text-white/60">{current?.artists ?? "승인된 목록을 재생해 보세요."}</p></div>
           <button type="button" onClick={() => void toggleFullscreen()} aria-label={isFullscreen ? "전체화면 닫기" : "전체화면으로 보기"} className="grid size-10 shrink-0 place-items-center rounded-full bg-white/10 hover:bg-white/20">{isFullscreen ? <Minimize2 size={18} /> : <Expand size={18} />}</button>
         </div>
         <div className="flex min-h-0 flex-1 items-center justify-center">
-          <div className={`aspect-video overflow-hidden rounded-xl bg-black ${isFullscreen ? "max-h-[70vh] w-full max-w-[min(100%,calc(70vh*16/9))]" : "w-full max-w-6xl"}`} ref={hostRef} aria-label="YouTube 영상 플레이어" />
+          <div className={`relative aspect-video overflow-hidden rounded-xl bg-black ${isFullscreen ? "w-full max-w-[min(100%,calc((100dvh-14rem)*16/9))]" : "w-full max-w-[1600px]"}`} aria-label="YouTube 영상 플레이어">
+            <div ref={hostRef} className="pointer-events-none absolute inset-0" />
+            <div aria-hidden="true" className="absolute inset-0 z-10 bg-transparent" />
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           {current?.albumImageUrl ? <Image src={current.albumImageUrl} alt={`${current.albumName} 앨범 표지`} width={48} height={48} className="size-12 rounded-lg object-cover" /> : <span className="grid size-12 place-items-center rounded-lg bg-white/10"><Music2 size={20} /></span>}

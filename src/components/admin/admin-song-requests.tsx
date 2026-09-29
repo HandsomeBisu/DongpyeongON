@@ -124,7 +124,7 @@ export function AdminSongRequests() {
   return (
     <>
       <SiteHeader />
-      <main className="page-enter mx-auto max-w-6xl px-5 py-8 sm:py-10">
+      <main className="page-enter mx-auto max-w-[1500px] px-5 py-8 sm:py-10">
         <Link
           href="/admin"
           className="mb-5 inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-semibold text-[var(--muted)] hover:bg-black/5"
