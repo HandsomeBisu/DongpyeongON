@@ -23,6 +23,7 @@ export function AppShell({
     "/onboarding",
     "/mypage",
     "/suspended",
+    "/suspended/name",
   ].includes(pathname);
 
   return (

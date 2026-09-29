@@ -9,6 +9,7 @@ import { VerifiedName } from "@/components/verified-name";
 import { adminFetch } from "@/lib/admin-fetch";
 import type { UserRole } from "@/types/domain";
 import type { AccountSuspension } from "@/lib/account-suspension";
+import { INVALID_NAME_SUSPENSION_REASON } from "@/lib/account-suspension";
 
 type UserRow = {
   uid: string;
@@ -503,6 +504,9 @@ export function AdminUsers() {
             >
               정지 사유
             </label>
+            <button type="button" onClick={() => setReason(INVALID_NAME_SUSPENSION_REASON)} className="mt-2 rounded-full border border-[#ff3b30]/25 bg-red-50 px-3 py-1.5 text-xs font-bold text-[#d72f26] hover:bg-red-100">
+              올바르지 않은 이름
+            </button>
             <textarea
               id="suspension-reason"
               value={reason}

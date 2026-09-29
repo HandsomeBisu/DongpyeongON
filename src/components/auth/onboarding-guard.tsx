@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
 import { PageSkeleton } from "@/components/ui/skeleton";
-import { isAccountSuspended } from "@/lib/account-suspension";
+import { isAccountSuspended, isInvalidNameSuspension } from "@/lib/account-suspension";
 
 export function OnboardingGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -13,18 +13,20 @@ export function OnboardingGuard({ children }: { children: React.ReactNode }) {
   const [now, setNow] = useState(Date.now);
   const suspensionEndsAt = profile?.suspension?.endsAt;
   const suspended = isAccountSuspended(profile?.suspension, now);
+  const suspensionPage = pathname === "/suspended" || pathname === "/suspended/name";
+  const invalidNameCorrectionPage = pathname === "/suspended/name" && suspended && !isInvalidNameSuspension(profile?.suspension);
   const policyPage = pathname === "/terms" || pathname === "/privacy";
   const needsOnboarding = Boolean(
-    user && profile && !profile.onboardingCompleted,
+    user && profile && !profile.onboardingCompleted && !suspended,
   );
   const needsLogin = pathname === "/onboarding" && !loading && !user;
   const leaveOnboarding =
     pathname === "/onboarding" && Boolean(user && profile?.onboardingCompleted);
   const enterSuspension = Boolean(
-    user && profile && suspended && pathname !== "/suspended",
+    user && profile && suspended && !suspensionPage,
   );
   const leaveSuspension =
-    pathname === "/suspended" && !loading && (!user || !suspended);
+    suspensionPage && !loading && (!user || !suspended);
 
   useEffect(() => {
     if (!suspensionEndsAt) return;
@@ -39,6 +41,7 @@ export function OnboardingGuard({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (loading) return;
     if (enterSuspension) router.replace("/suspended");
+    else if (invalidNameCorrectionPage) router.replace("/suspended");
     else if (leaveSuspension)
       router.replace(user ? "/" : "/login");
     else if (needsLogin) router.replace("/login");
@@ -48,6 +51,7 @@ export function OnboardingGuard({ children }: { children: React.ReactNode }) {
   }, [
     leaveOnboarding,
     enterSuspension,
+    invalidNameCorrectionPage,
     leaveSuspension,
     loading,
     needsLogin,
@@ -59,8 +63,9 @@ export function OnboardingGuard({ children }: { children: React.ReactNode }) {
   ]);
 
   if (
-    (loading && pathname === "/suspended") ||
+    (loading && suspensionPage) ||
     enterSuspension ||
+    invalidNameCorrectionPage ||
     leaveSuspension ||
     needsLogin ||
     leaveOnboarding ||

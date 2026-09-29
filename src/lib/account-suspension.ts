@@ -4,6 +4,12 @@ export type AccountSuspension = {
   endsAt: number;
 };
 
+export const INVALID_NAME_SUSPENSION_REASON = "올바르지 않은 이름";
+
+export function isInvalidNameSuspension(suspension: AccountSuspension | null | undefined) {
+  return suspension?.reason === INVALID_NAME_SUSPENSION_REASON;
+}
+
 function timestampToMillis(value: unknown) {
   if (typeof value === "number" && Number.isFinite(value)) return value;
   if (value instanceof Date) return value.getTime();

@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  INVALID_NAME_SUSPENSION_REASON,
+  isInvalidNameSuspension,
   isAccountSuspended,
   parseAccountSuspension,
 } from "./account-suspension";
@@ -29,5 +31,10 @@ describe("account suspension", () => {
     expect(
       parseAccountSuspension({ reason: "", startsAt: 5_000, endsAt: 1_000 }),
     ).toBeNull();
+  });
+
+  it("recognizes only the dedicated name correction reason", () => {
+    expect(isInvalidNameSuspension({ reason: INVALID_NAME_SUSPENSION_REASON, startsAt: 1, endsAt: 2 })).toBe(true);
+    expect(isInvalidNameSuspension({ reason: "다른 사유", startsAt: 1, endsAt: 2 })).toBe(false);
   });
 });

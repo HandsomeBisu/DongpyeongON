@@ -1,8 +1,10 @@
 "use client";
 
 import { Clock3, ShieldAlert } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
+import { isInvalidNameSuspension } from "@/lib/account-suspension";
 
 const dateFormatter = new Intl.DateTimeFormat("ko-KR", {
   dateStyle: "long",
@@ -69,6 +71,11 @@ export function SuspendedAccount() {
             <p className="mt-2 text-sm font-bold text-[#007aff]">{remaining}</p>
           </div>
         </dl>
+        {isInvalidNameSuspension(suspension) && (
+          <Link href="/suspended/name" className="mt-6 flex h-12 items-center justify-center rounded-2xl bg-[#007aff] px-5 text-sm font-bold text-white hover:bg-[#0066d6]">
+            올바른 이름으로 수정하기
+          </Link>
+        )}
       </section>
     </main>
   );
