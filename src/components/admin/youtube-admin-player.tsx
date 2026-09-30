@@ -154,13 +154,13 @@ export function YouTubeAdminPlayer({ queue, onTrackCompleted }: { queue: SongReq
   return (
     <>
       <Script src="https://www.youtube.com/iframe_api" strategy="afterInteractive" onReady={() => { if (window.YT?.Player) setSdkReady(true); }} onError={() => setMessage("YouTube 플레이어를 불러오지 못했어요.")} />
-      <section ref={shellRef} className={`mb-5 flex flex-col overflow-hidden bg-[#141414] text-white shadow-xl ${isFullscreen ? "h-dvh w-screen gap-2 p-3 sm:p-4" : "gap-3 rounded-3xl p-3 sm:p-4"}`}>
-        <div className="flex items-center justify-between gap-3">
+      <section ref={shellRef} className={`flex flex-col overflow-hidden bg-[#141414] text-white shadow-xl ${isFullscreen ? "relative h-dvh w-screen" : "mb-5 gap-3 rounded-3xl p-3 sm:p-4"}`}>
+        <div className={`flex items-center justify-between gap-3 ${isFullscreen ? "absolute inset-x-0 top-0 z-30 bg-gradient-to-b from-black/85 via-black/50 to-transparent px-4 pb-10 pt-4 sm:px-6" : ""}`}>
           <div className="min-w-0"><h2 className="truncate text-lg font-bold sm:text-xl">{upNext ? "잠시 후 다음 곡" : current?.name ?? "재생 중인 곡이 없어요"}</h2><p className="truncate text-sm text-white/60">{upNext ? `${upNext.name} · ${upNext.artists}` : current?.artists ?? "승인된 목록을 재생해 보세요."}</p></div>
           <button type="button" onClick={() => void toggleFullscreen()} aria-label={isFullscreen ? "전체화면 닫기" : "전체화면으로 보기"} className="grid size-10 shrink-0 place-items-center rounded-full bg-white/10 hover:bg-white/20">{isFullscreen ? <Minimize2 size={18} /> : <Expand size={18} />}</button>
         </div>
-        <div className="flex min-h-0 flex-1 items-center justify-center">
-          <div className={`relative aspect-video overflow-hidden rounded-xl bg-black ${isFullscreen ? "w-full max-w-[min(100%,calc((100dvh-14rem)*16/9))]" : "w-full max-w-[1600px]"}`} aria-label="YouTube 영상 플레이어">
+        <div className={`flex min-h-0 items-center justify-center ${isFullscreen ? "absolute inset-0" : "flex-1"}`}>
+          <div className={`relative aspect-video overflow-hidden bg-black ${isFullscreen ? "w-full max-w-[min(100vw,177.778dvh)]" : "w-full max-w-[1600px] rounded-xl"}`} aria-label="YouTube 영상 플레이어">
             <div ref={hostRef} className="pointer-events-none absolute inset-0" />
             <div aria-hidden="true" className="absolute inset-0 z-10 bg-transparent" />
             {upNext && (
@@ -177,6 +177,7 @@ export function YouTubeAdminPlayer({ queue, onTrackCompleted }: { queue: SongReq
             )}
           </div>
         </div>
+        <div className={isFullscreen ? "absolute inset-x-0 bottom-0 z-30 flex flex-col gap-3 bg-gradient-to-t from-black/90 via-black/65 to-transparent px-4 pb-4 pt-14 sm:px-6" : "flex flex-col gap-3"}>
         <div className="flex flex-wrap items-center gap-3">
           {current?.albumImageUrl ? <Image src={current.albumImageUrl} alt={`${current.albumName} 앨범 표지`} width={48} height={48} className="size-12 rounded-lg object-cover" /> : <span className="grid size-12 place-items-center rounded-lg bg-white/10"><Music2 size={20} /></span>}
           <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{current?.name ?? "재생 대기"}</p><p className="truncate text-xs text-white/55">{current?.youtubeVideoTitle ?? `${playableCount}곡 준비됨`}</p></div>
@@ -196,6 +197,7 @@ export function YouTubeAdminPlayer({ queue, onTrackCompleted }: { queue: SongReq
         </div>
         {message && <p role="status" className="rounded-xl bg-white/10 px-3 py-2 text-xs text-white/75">{message}</p>}
         {!playableCount && <p className="text-xs text-amber-200">재생하려면 승인된 곡에 YouTube 영상을 선택해 주세요.</p>}
+        </div>
       </section>
     </>
   );
