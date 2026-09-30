@@ -159,8 +159,8 @@ export function YouTubeAdminPlayer({ queue, onTrackCompleted }: { queue: SongReq
           <div className="min-w-0"><h2 className="truncate text-lg font-bold sm:text-xl">{upNext ? "잠시 후 다음 곡" : current?.name ?? "재생 중인 곡이 없어요"}</h2><p className="truncate text-sm text-white/60">{upNext ? `${upNext.name} · ${upNext.artists}` : current?.artists ?? "승인된 목록을 재생해 보세요."}</p></div>
           <button type="button" onClick={() => void toggleFullscreen()} aria-label={isFullscreen ? "전체화면 닫기" : "전체화면으로 보기"} className="grid size-10 shrink-0 place-items-center rounded-full bg-white/10 hover:bg-white/20">{isFullscreen ? <Minimize2 size={18} /> : <Expand size={18} />}</button>
         </div>
-        <div className={`flex min-h-0 items-center justify-center ${isFullscreen ? "absolute inset-0" : "flex-1"}`}>
-          <div className={`relative aspect-video overflow-hidden bg-black ${isFullscreen ? "w-full max-w-[min(100vw,177.778dvh)]" : "w-full max-w-[1600px] rounded-xl"}`} aria-label="YouTube 영상 플레이어">
+        <div className={`flex min-h-0 flex-1 items-center justify-center ${isFullscreen ? "w-full" : ""}`}>
+          <div className={`relative overflow-hidden bg-black ${isFullscreen ? "h-full w-full" : "aspect-video w-full max-w-[1600px] rounded-xl"}`} aria-label="YouTube 영상 플레이어">
             <div ref={hostRef} className="pointer-events-none absolute inset-0" />
             <div aria-hidden="true" className="absolute inset-0 z-10 bg-transparent" />
             {upNext && (
@@ -177,7 +177,7 @@ export function YouTubeAdminPlayer({ queue, onTrackCompleted }: { queue: SongReq
             )}
           </div>
         </div>
-        <div className={isFullscreen ? "absolute inset-x-0 bottom-0 z-30 flex flex-col gap-3 bg-gradient-to-t from-black/90 via-black/65 to-transparent px-4 pb-4 pt-14 sm:px-6" : "flex flex-col gap-3"}>
+        <div className={isFullscreen ? "relative z-30 flex shrink-0 flex-col gap-3 bg-[#101820] px-4 py-3 sm:px-6 sm:py-4" : "flex flex-col gap-3"}>
         <div className="flex flex-wrap items-center gap-3">
           {current?.albumImageUrl ? <Image src={current.albumImageUrl} alt={`${current.albumName} 앨범 표지`} width={48} height={48} className="size-12 rounded-lg object-cover" /> : <span className="grid size-12 place-items-center rounded-lg bg-white/10"><Music2 size={20} /></span>}
           <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{current?.name ?? "재생 대기"}</p><p className="truncate text-xs text-white/55">{current?.youtubeVideoTitle ?? `${playableCount}곡 준비됨`}</p></div>
