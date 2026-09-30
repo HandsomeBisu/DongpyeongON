@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import {
+  AlertTriangle,
   ArrowLeft,
   Check,
   CheckCircle2,
@@ -245,6 +246,8 @@ function SongRow({
   const [showVideos, setShowVideos] = useState(false);
   const [candidates, setCandidates] = useState<VideoCandidate[]>([]);
   const [selectedVideoId, setSelectedVideoId] = useState("");
+  const [showComparison, setShowComparison] = useState(false);
+  const [confirmedMatch, setConfirmedMatch] = useState(false);
   const [videoLoading, setVideoLoading] = useState(false);
   const [videoError, setVideoError] = useState("");
 
@@ -253,6 +256,8 @@ function SongRow({
     setVideoLoading(true);
     setVideoError("");
     setSelectedVideoId("");
+    setShowComparison(false);
+    setConfirmedMatch(false);
     setCandidates([]);
     try {
       const response = await adminFetch(`/api/admin/youtube/candidates?requestId=${encodeURIComponent(request.id)}`);
@@ -267,9 +272,11 @@ function SongRow({
   }
 
   async function approveVideo() {
-    if (!selectedVideoId) return;
+    if (!selectedVideoId || !showComparison || !confirmedMatch) return;
     if (await onStatusChange(request.id, "approved", selectedVideoId)) setShowVideos(false);
   }
+
+  const selectedCandidate = candidates.find((candidate) => candidate.videoId === selectedVideoId);
 
   return (
     <article className="grid gap-4 p-4 sm:grid-cols-[72px_minmax(0,1fr)_auto] sm:items-center sm:p-5">
@@ -392,20 +399,45 @@ function SongRow({
       {showVideos && (
         <div className="rounded-2xl border border-[var(--border)] bg-[#f8f8fa] p-4 sm:col-span-3">
           <div className="flex items-center justify-between gap-3"><h3 className="text-sm font-bold">YouTube 영상 선택</h3><button type="button" onClick={() => setShowVideos(false)} aria-label="영상 선택 닫기" className="rounded-full p-2 hover:bg-black/5"><X size={16} /></button></div>
+          <div className="mt-3 flex gap-3 rounded-xl border border-amber-300 bg-amber-50 p-3 text-amber-950">
+            <AlertTriangle size={19} className="mt-0.5 shrink-0" aria-hidden="true" />
+            <div className="min-w-0 text-sm leading-6">
+              <p className="font-bold">반드시 신청된 노래 제목과 영상 제목을 확인한 후 선택하세요.</p>
+              <p className="break-words">신청곡: <strong>{request.name}</strong> · {request.artists}</p>
+              <p className="text-xs">제목이 비슷해도 다른 곡이나 다른 가수의 영상일 수 있어요.</p>
+            </div>
+          </div>
           {videoLoading && <p className="mt-3 text-sm text-[var(--muted)]">영상 후보를 찾고 있어요...</p>}
           {videoError && <p role="alert" className="mt-3 text-sm text-red-600">{videoError}</p>}
           {!videoLoading && !videoError && !candidates.length && <p className="mt-3 text-sm text-[var(--muted)]">재생 가능한 영상 후보가 없어요.</p>}
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
             {!videoLoading && candidates.map((candidate) => (
               <label key={candidate.videoId} className={`flex cursor-pointer items-center gap-3 rounded-xl border p-2 ${selectedVideoId === candidate.videoId ? "border-[#20a34a] bg-[#e8f9ed]" : "border-[var(--border)] bg-white"}`}>
-                <input type="radio" name={`video-${request.id}`} value={candidate.videoId} checked={selectedVideoId === candidate.videoId} onChange={() => setSelectedVideoId(candidate.videoId)} className="accent-[#20a34a]" />
+                <input type="radio" name={`video-${request.id}`} value={candidate.videoId} checked={selectedVideoId === candidate.videoId} onChange={() => { setSelectedVideoId(candidate.videoId); setShowComparison(false); setConfirmedMatch(false); }} className="accent-[#20a34a]" />
                 <Image src={candidate.thumbnailUrl} alt="" width={96} height={54} className="aspect-video w-24 shrink-0 rounded-lg object-cover" />
                 <span className="min-w-0 flex-1"><span className="line-clamp-2 text-xs font-semibold">{candidate.title}</span><span className="mt-1 block truncate text-[11px] text-[var(--muted)]">{candidate.channelTitle}</span></span>
                 <a href={`https://www.youtube.com/watch?v=${candidate.videoId}`} target="_blank" rel="noreferrer" aria-label={`${candidate.title} YouTube에서 확인`} onClick={(event) => event.stopPropagation()} className="rounded-full p-2 hover:bg-black/5"><ExternalLink size={15} /></a>
               </label>
             ))}
           </div>
-          <div className="mt-4 flex justify-end"><button type="button" disabled={!selectedVideoId || busy} onClick={() => void approveVideo()} className="rounded-full bg-[#20a34a] px-5 py-2.5 text-sm font-bold text-white disabled:opacity-40">{view === "approved" ? "선택한 영상 저장" : "이 영상으로 승인"}</button></div>
+          {showComparison && selectedCandidate && (
+            <div className="mt-4 rounded-2xl border-2 border-amber-400 bg-white p-4">
+              <h4 className="text-sm font-bold">신청곡과 선택한 영상 비교</h4>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <div className="rounded-xl bg-[#f5f5f7] p-3"><p className="text-xs font-bold text-[var(--muted)]">신청된 노래</p><p className="mt-1 break-words text-sm font-bold">{request.name}</p><p className="mt-1 break-words text-xs text-[var(--muted)]">{request.artists}</p></div>
+                <div className="rounded-xl bg-amber-50 p-3"><p className="text-xs font-bold text-amber-800">선택한 YouTube 영상</p><p className="mt-1 break-words text-sm font-bold">{selectedCandidate.title}</p><p className="mt-1 break-words text-xs text-[var(--muted)]">{selectedCandidate.channelTitle}</p></div>
+              </div>
+              <label className="mt-4 flex cursor-pointer items-start gap-2 text-sm font-semibold"><input type="checkbox" checked={confirmedMatch} onChange={(event) => setConfirmedMatch(event.target.checked)} className="mt-1 accent-[#20a34a]" /><span>두 제목과 가수를 비교했고, 신청된 곡에 맞는 영상임을 확인했습니다.</span></label>
+            </div>
+          )}
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+            <p className="min-w-0 break-words text-xs text-[var(--muted)]">선택한 영상: <strong className="text-[var(--foreground)]">{selectedCandidate?.title ?? "아직 선택하지 않았어요"}</strong></p>
+            {showComparison ? (
+              <button type="button" disabled={!confirmedMatch || busy} onClick={() => void approveVideo()} className="rounded-full bg-[#20a34a] px-5 py-2.5 text-sm font-bold text-white disabled:opacity-40">{view === "approved" ? "확인하고 영상 저장" : "확인하고 승인"}</button>
+            ) : (
+              <button type="button" disabled={!selectedCandidate || busy} onClick={() => setShowComparison(true)} className="rounded-full bg-[#20a34a] px-5 py-2.5 text-sm font-bold text-white disabled:opacity-40">선택한 영상 비교하기</button>
+            )}
+          </div>
         </div>
       )}
     </article>
