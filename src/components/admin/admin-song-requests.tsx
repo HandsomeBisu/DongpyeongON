@@ -441,11 +441,12 @@ function SongRow({
             <button type="button" disabled={!selectedCandidate || busy} onClick={() => setShowComparison(true)} className="rounded-full bg-[#20a34a] px-5 py-2.5 text-sm font-bold text-white disabled:opacity-40">선택한 영상 비교하기</button>
           </div>
           {showComparison && selectedCandidate && (
-            <dialog ref={comparisonDialogRef} aria-labelledby={`video-compare-title-${request.id}`} onCancel={(event) => { event.preventDefault(); closeComparison(); }} className="w-[min(92vw,760px)] max-h-[90dvh] overflow-y-auto rounded-3xl border border-[var(--border)] bg-white p-0 text-[var(--foreground)] shadow-2xl backdrop:bg-black/60">
+            <dialog ref={comparisonDialogRef} aria-labelledby={`video-compare-title-${request.id}`} onCancel={(event) => { event.preventDefault(); closeComparison(); }} className="video-compare-dialog w-[min(92vw,760px)] max-h-[90dvh] overflow-y-auto rounded-3xl border border-[var(--border)] bg-white p-0 text-[var(--foreground)] shadow-2xl backdrop:bg-black/60">
               <div className="p-5 sm:p-7">
-                <div className="flex items-start justify-between gap-4">
-                  <div><h4 id={`video-compare-title-${request.id}`} className="text-lg font-bold">신청곡과 선택한 영상 비교</h4><p className="mt-1 text-sm text-[var(--muted)]">제목과 가수를 확인한 뒤 승인해 주세요.</p></div>
-                  <button type="button" autoFocus onClick={closeComparison} aria-label="비교 팝업 닫기" className="grid size-9 shrink-0 place-items-center rounded-full bg-[#f5f5f7] hover:bg-[#e9e9ed]"><X size={18} /></button>
+                <div className="relative px-10 text-center">
+                  <h4 id={`video-compare-title-${request.id}`} className="text-lg font-bold">신청곡과 선택한 영상 비교</h4>
+                  <p className="mt-1 text-sm text-[var(--muted)]">제목과 가수를 확인한 뒤 승인해 주세요.</p>
+                  <button type="button" autoFocus onClick={closeComparison} aria-label="비교 팝업 닫기" className="absolute right-0 top-0 grid size-9 place-items-center rounded-full bg-[#f5f5f7] hover:bg-[#e9e9ed]"><X size={18} /></button>
                 </div>
                 <div className="mt-5 grid gap-3 sm:grid-cols-2">
                   <div className="rounded-xl bg-[#f5f5f7] p-4"><p className="text-xs font-bold text-[var(--muted)]">신청된 노래</p><p className="mt-2 break-words text-base font-bold">{request.name}</p><p className="mt-1 break-words text-sm text-[var(--muted)]">{request.artists}</p></div>

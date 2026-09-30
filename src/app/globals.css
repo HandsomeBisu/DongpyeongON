@@ -198,6 +198,38 @@ button:not(:disabled) {
 .page-enter {
   animation: ios-enter 560ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
+
+.video-compare-dialog {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+}
+.video-compare-dialog[open] {
+  animation: video-compare-enter 300ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.video-compare-dialog[open]::backdrop {
+  animation: video-compare-backdrop 300ms ease-out both;
+}
+@keyframes video-compare-enter {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes video-compare-backdrop {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .video-compare-dialog[open],
+  .video-compare-dialog[open]::backdrop {
+    animation: none;
+  }
+}
 .stagger-item {
   animation: ios-enter 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
