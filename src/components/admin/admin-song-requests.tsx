@@ -16,7 +16,7 @@ import {
   RotateCcw,
   X,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { SiteHeader } from "@/components/site-header";
 import { YouTubeAdminPlayer } from "@/components/admin/youtube-admin-player";
 import { ListSkeleton } from "@/components/ui/skeleton";
@@ -250,6 +250,19 @@ function SongRow({
   const [confirmedMatch, setConfirmedMatch] = useState(false);
   const [videoLoading, setVideoLoading] = useState(false);
   const [videoError, setVideoError] = useState("");
+  const comparisonDialogRef = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    if (!showComparison) return;
+    const dialog = comparisonDialogRef.current;
+    if (dialog && !dialog.open) dialog.showModal();
+    return () => { if (dialog?.open) dialog.close(); };
+  }, [showComparison]);
+
+  function closeComparison() {
+    setShowComparison(false);
+    setConfirmedMatch(false);
+  }
 
   async function openVideoPicker() {
     setShowVideos(true);
@@ -273,7 +286,10 @@ function SongRow({
 
   async function approveVideo() {
     if (!selectedVideoId || !showComparison || !confirmedMatch) return;
-    if (await onStatusChange(request.id, "approved", selectedVideoId)) setShowVideos(false);
+    if (await onStatusChange(request.id, "approved", selectedVideoId)) {
+      closeComparison();
+      setShowVideos(false);
+    }
   }
 
   const selectedCandidate = candidates.find((candidate) => candidate.videoId === selectedVideoId);
@@ -420,24 +436,29 @@ function SongRow({
               </label>
             ))}
           </div>
-          {showComparison && selectedCandidate && (
-            <div className="mt-4 rounded-2xl border-2 border-amber-400 bg-white p-4">
-              <h4 className="text-sm font-bold">신청곡과 선택한 영상 비교</h4>
-              <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                <div className="rounded-xl bg-[#f5f5f7] p-3"><p className="text-xs font-bold text-[var(--muted)]">신청된 노래</p><p className="mt-1 break-words text-sm font-bold">{request.name}</p><p className="mt-1 break-words text-xs text-[var(--muted)]">{request.artists}</p></div>
-                <div className="rounded-xl bg-amber-50 p-3"><p className="text-xs font-bold text-amber-800">선택한 YouTube 영상</p><p className="mt-1 break-words text-sm font-bold">{selectedCandidate.title}</p><p className="mt-1 break-words text-xs text-[var(--muted)]">{selectedCandidate.channelTitle}</p></div>
-              </div>
-              <label className="mt-4 flex cursor-pointer items-start gap-2 text-sm font-semibold"><input type="checkbox" checked={confirmedMatch} onChange={(event) => setConfirmedMatch(event.target.checked)} className="mt-1 accent-[#20a34a]" /><span>두 제목과 가수를 비교했고, 신청된 곡에 맞는 영상임을 확인했습니다.</span></label>
-            </div>
-          )}
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
             <p className="min-w-0 break-words text-xs text-[var(--muted)]">선택한 영상: <strong className="text-[var(--foreground)]">{selectedCandidate?.title ?? "아직 선택하지 않았어요"}</strong></p>
-            {showComparison ? (
-              <button type="button" disabled={!confirmedMatch || busy} onClick={() => void approveVideo()} className="rounded-full bg-[#20a34a] px-5 py-2.5 text-sm font-bold text-white disabled:opacity-40">{view === "approved" ? "확인하고 영상 저장" : "확인하고 승인"}</button>
-            ) : (
-              <button type="button" disabled={!selectedCandidate || busy} onClick={() => setShowComparison(true)} className="rounded-full bg-[#20a34a] px-5 py-2.5 text-sm font-bold text-white disabled:opacity-40">선택한 영상 비교하기</button>
-            )}
+            <button type="button" disabled={!selectedCandidate || busy} onClick={() => setShowComparison(true)} className="rounded-full bg-[#20a34a] px-5 py-2.5 text-sm font-bold text-white disabled:opacity-40">선택한 영상 비교하기</button>
           </div>
+          {showComparison && selectedCandidate && (
+            <dialog ref={comparisonDialogRef} aria-labelledby={`video-compare-title-${request.id}`} onCancel={(event) => { event.preventDefault(); closeComparison(); }} className="w-[min(92vw,760px)] max-h-[90dvh] overflow-y-auto rounded-3xl border border-[var(--border)] bg-white p-0 text-[var(--foreground)] shadow-2xl backdrop:bg-black/60">
+              <div className="p-5 sm:p-7">
+                <div className="flex items-start justify-between gap-4">
+                  <div><h4 id={`video-compare-title-${request.id}`} className="text-lg font-bold">신청곡과 선택한 영상 비교</h4><p className="mt-1 text-sm text-[var(--muted)]">제목과 가수를 확인한 뒤 승인해 주세요.</p></div>
+                  <button type="button" autoFocus onClick={closeComparison} aria-label="비교 팝업 닫기" className="grid size-9 shrink-0 place-items-center rounded-full bg-[#f5f5f7] hover:bg-[#e9e9ed]"><X size={18} /></button>
+                </div>
+                <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-xl bg-[#f5f5f7] p-4"><p className="text-xs font-bold text-[var(--muted)]">신청된 노래</p><p className="mt-2 break-words text-base font-bold">{request.name}</p><p className="mt-1 break-words text-sm text-[var(--muted)]">{request.artists}</p></div>
+                  <div className="rounded-xl bg-amber-50 p-4"><p className="text-xs font-bold text-amber-800">선택한 YouTube 영상</p><p className="mt-2 break-words text-base font-bold">{selectedCandidate.title}</p><p className="mt-1 break-words text-sm text-[var(--muted)]">{selectedCandidate.channelTitle}</p></div>
+                </div>
+                <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm font-semibold"><input type="checkbox" checked={confirmedMatch} onChange={(event) => setConfirmedMatch(event.target.checked)} className="mt-1 accent-[#20a34a]" /><span>두 제목과 가수를 비교했고, 신청된 곡에 맞는 영상임을 확인했습니다.</span></label>
+                <div className="mt-5 flex justify-end gap-2">
+                  <button type="button" onClick={closeComparison} className="rounded-full border border-[var(--border)] px-5 py-2.5 text-sm font-semibold">취소</button>
+                  <button type="button" disabled={!confirmedMatch || busy} onClick={() => void approveVideo()} className="rounded-full bg-[#20a34a] px-5 py-2.5 text-sm font-bold text-white disabled:opacity-40">{view === "approved" ? "확인하고 영상 저장" : "확인하고 승인"}</button>
+                </div>
+              </div>
+            </dialog>
+          )}
         </div>
       )}
     </article>
