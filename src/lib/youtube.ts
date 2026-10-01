@@ -1,4 +1,5 @@
 import "server-only";
+import { rankYouTubeCandidates } from "@/lib/youtube-ranking";
 
 export type YouTubeCandidate = {
   videoId: string;
@@ -31,15 +32,15 @@ async function youtubeGet(path: string, params: Record<string, string>) {
   return response.json();
 }
 
-export async function searchYouTubeVideos(name: string, artists: string): Promise<YouTubeCandidate[]> {
+export async function searchYouTubeVideos(name: string, artists: string, query?: string): Promise<YouTubeCandidate[]> {
   const data = await youtubeGet("search", {
     part: "snippet",
-    q: `${artists} ${name} official music video`,
+    q: query ?? `${artists} ${name} official music video`,
     type: "video",
     videoEmbeddable: "true",
-    maxResults: "6",
+    maxResults: "10",
   }) as { items?: Array<{ id?: { videoId?: string }; snippet?: { title?: string; channelTitle?: string } }> };
-  return (data.items ?? []).flatMap((item) => {
+  const candidates = (data.items ?? []).flatMap((item) => {
     const videoId = item.id?.videoId;
     if (!videoId || !/^[\w-]{11}$/.test(videoId)) return [];
     return [{
@@ -49,6 +50,7 @@ export async function searchYouTubeVideos(name: string, artists: string): Promis
       thumbnailUrl: `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`,
     }];
   });
+  return rankYouTubeCandidates(candidates, name, artists);
 }
 
 export async function getEmbeddableYouTubeVideo(videoId: string) {

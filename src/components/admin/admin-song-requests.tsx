@@ -14,6 +14,7 @@ import {
   Music2,
   Play,
   RotateCcw,
+  Search,
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -246,11 +247,14 @@ function SongRow({
   const [showVideos, setShowVideos] = useState(false);
   const [candidates, setCandidates] = useState<VideoCandidate[]>([]);
   const [selectedVideoId, setSelectedVideoId] = useState("");
+  const [videoQuery, setVideoQuery] = useState("");
+  const [activeVideoQuery, setActiveVideoQuery] = useState("");
   const [showComparison, setShowComparison] = useState(false);
   const [confirmedMatch, setConfirmedMatch] = useState(false);
   const [videoLoading, setVideoLoading] = useState(false);
   const [videoError, setVideoError] = useState("");
   const comparisonDialogRef = useRef<HTMLDialogElement>(null);
+  const videoSearchIdRef = useRef(0);
 
   useEffect(() => {
     if (!showComparison) return;
@@ -264,31 +268,45 @@ function SongRow({
     setConfirmedMatch(false);
   }
 
-  async function openVideoPicker() {
-    setShowVideos(true);
+  async function loadVideoCandidates(query = "") {
+    const searchId = ++videoSearchIdRef.current;
     setVideoLoading(true);
     setVideoError("");
     setSelectedVideoId("");
     setShowComparison(false);
     setConfirmedMatch(false);
     setCandidates([]);
+    setActiveVideoQuery(query);
     try {
-      const response = await adminFetch(`/api/admin/youtube/candidates?requestId=${encodeURIComponent(request.id)}`);
-      const data = await response.json() as { candidates?: VideoCandidate[]; error?: string };
+      const params = new URLSearchParams({ requestId: request.id });
+      if (query) params.set("query", query);
+      const response = await adminFetch(`/api/admin/youtube/candidates?${params}`);
+      const data = await response.json().catch(() => ({})) as { candidates?: VideoCandidate[]; error?: string };
       if (!response.ok) throw new Error(data.error ?? "영상 후보를 불러오지 못했어요.");
-      setCandidates(data.candidates ?? []);
+      if (searchId === videoSearchIdRef.current) setCandidates(data.candidates ?? []);
     } catch (error) {
-      setVideoError(error instanceof Error ? error.message : "영상 후보를 불러오지 못했어요.");
+      if (searchId === videoSearchIdRef.current) setVideoError(error instanceof Error ? error.message : "영상 후보를 불러오지 못했어요.");
     } finally {
-      setVideoLoading(false);
+      if (searchId === videoSearchIdRef.current) setVideoLoading(false);
     }
+  }
+
+  function openVideoPicker() {
+    setShowVideos(true);
+    setVideoQuery("");
+    void loadVideoCandidates();
+  }
+
+  function closeVideoPicker() {
+    videoSearchIdRef.current += 1;
+    setShowVideos(false);
+    closeComparison();
   }
 
   async function approveVideo() {
     if (!selectedVideoId || !showComparison || !confirmedMatch) return;
     if (await onStatusChange(request.id, "approved", selectedVideoId)) {
-      closeComparison();
-      setShowVideos(false);
+      closeVideoPicker();
     }
   }
 
@@ -414,7 +432,7 @@ function SongRow({
       </div>
       {showVideos && (
         <div className="rounded-2xl border border-[var(--border)] bg-[#f8f8fa] p-4 sm:col-span-3">
-          <div className="flex items-center justify-between gap-3"><h3 className="text-sm font-bold">YouTube 영상 선택</h3><button type="button" onClick={() => setShowVideos(false)} aria-label="영상 선택 닫기" className="rounded-full p-2 hover:bg-black/5"><X size={16} /></button></div>
+          <div className="flex items-center justify-between gap-3"><h3 className="text-sm font-bold">YouTube 영상 선택</h3><button type="button" onClick={closeVideoPicker} aria-label="영상 선택 닫기" className="rounded-full p-2 hover:bg-black/5"><X size={16} /></button></div>
           <div className="mt-3 flex gap-3 rounded-xl border border-amber-300 bg-amber-50 p-3 text-amber-950">
             <AlertTriangle size={19} className="mt-0.5 shrink-0" aria-hidden="true" />
             <div className="min-w-0 text-sm leading-6">
@@ -423,6 +441,13 @@ function SongRow({
               <p className="text-xs">제목이 비슷해도 다른 곡이나 다른 가수의 영상일 수 있어요.</p>
             </div>
           </div>
+          <form onSubmit={(event) => { event.preventDefault(); if (videoQuery.trim()) void loadVideoCandidates(videoQuery.trim()); }} className="mt-3 flex flex-wrap gap-2">
+            <label htmlFor={`youtube-search-${request.id}`} className="sr-only">YouTube 영상 검색어</label>
+            <input id={`youtube-search-${request.id}`} type="search" value={videoQuery} onChange={(event) => setVideoQuery(event.target.value)} maxLength={120} placeholder="가수, 곡명 또는 영상 검색어 입력" className="h-10 min-w-48 flex-1 rounded-xl border border-[var(--border)] bg-white px-3 text-sm outline-none focus:border-[#20a34a]" />
+            <button type="submit" disabled={!videoQuery.trim() || videoLoading} className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-[#171719] px-4 text-sm font-semibold text-white disabled:opacity-40"><Search size={15} />검색</button>
+            <button type="button" disabled={videoLoading} onClick={() => { setVideoQuery(""); void loadVideoCandidates(); }} className="h-10 rounded-xl border border-[var(--border)] bg-white px-3 text-sm font-semibold disabled:opacity-40">기본 후보</button>
+          </form>
+          <p className="mt-2 text-xs text-[var(--muted)]">{activeVideoQuery ? `“${activeVideoQuery}” 검색 결과` : "기본 후보 · 신청곡의 뮤직비디오를 우선 표시"}</p>
           {videoLoading && <p className="mt-3 text-sm text-[var(--muted)]">영상 후보를 찾고 있어요...</p>}
           {videoError && <p role="alert" className="mt-3 text-sm text-red-600">{videoError}</p>}
           {!videoLoading && !videoError && !candidates.length && <p className="mt-3 text-sm text-[var(--muted)]">재생 가능한 영상 후보가 없어요.</p>}
