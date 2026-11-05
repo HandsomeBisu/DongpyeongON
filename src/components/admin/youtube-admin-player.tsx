@@ -35,7 +35,8 @@ export function YouTubeAdminPlayer({ queue, onTrackCompleted }: { queue: SongReq
   const [controlsVisible, setControlsVisible] = useState(true);
   const [controlsHeight, setControlsHeight] = useState(160);
   const [message, setMessage] = useState("");
-  const [skipNotice, setSkipNotice] = useState("");
+  const [skipNotice, setSkipNotice] = useState(false);
+  const [skipRemainingSeconds, setSkipRemainingSeconds] = useState<number | null>(null);
 
   useEffect(() => { queueRef.current = queue; }, [queue]);
   useEffect(() => { completedRef.current = onTrackCompleted; }, [onTrackCompleted]);
@@ -93,7 +94,7 @@ export function YouTubeAdminPlayer({ queue, onTrackCompleted }: { queue: SongReq
     watchedSecondsRef.current = 0;
     lastPlaybackSampleRef.current = null;
     playbackRunningRef.current = false;
-    setSkipNotice("");
+    setSkipNotice(false);
     currentRef.current = request;
     setCurrent(request);
     setUpNext(null);
@@ -111,7 +112,7 @@ export function YouTubeAdminPlayer({ queue, onTrackCompleted }: { queue: SongReq
     currentRef.current = null;
     setCurrent(null);
     setPlaying(false);
-    setSkipNotice("");
+    setSkipNotice(false);
     setPosition(0);
     setDuration(0);
     setUpNext(next);
@@ -151,12 +152,10 @@ export function YouTubeAdminPlayer({ queue, onTrackCompleted }: { queue: SongReq
 
   function showSkipNotice() {
     const videoDuration = playerRef.current?.getDuration() || duration;
-    const remaining = Math.max(0, Math.ceil(videoDuration / 2 - watchedSecondsRef.current));
-    setSkipNotice(videoDuration > 0
-      ? `영상의 절반을 재생한 뒤 사용할 수 있어요. 약 ${remaining}초 남았어요.`
-      : "영상 길이를 불러온 뒤 사용할 수 있어요.");
+    setSkipRemainingSeconds(videoDuration > 0 ? Math.max(0, Math.ceil(videoDuration / 2 - watchedSecondsRef.current)) : null);
+    setSkipNotice(true);
     if (skipNoticeTimerRef.current !== null) window.clearTimeout(skipNoticeTimerRef.current);
-    skipNoticeTimerRef.current = window.setTimeout(() => setSkipNotice(""), 2_500);
+    skipNoticeTimerRef.current = window.setTimeout(() => setSkipNotice(false), 2_500);
   }
 
   function canControlPlayback() {
@@ -218,13 +217,14 @@ export function YouTubeAdminPlayer({ queue, onTrackCompleted }: { queue: SongReq
       const previous = lastPlaybackSampleRef.current;
       watchedSecondsRef.current += watchedTimeBetween(previous, { time: sampleTime, position: videoPosition }, playbackRunningRef.current);
       lastPlaybackSampleRef.current = { time: sampleTime, position: videoPosition };
+      if (skipNotice) setSkipRemainingSeconds(videoDuration > 0 ? Math.max(0, Math.ceil(videoDuration / 2 - watchedSecondsRef.current)) : null);
       if (currentRef.current && !endingRef.current && playbackRunningRef.current && isNearVideoEnd(videoDuration, videoPosition)) {
         const index = queueRef.current.findIndex((item) => item.id === currentRef.current?.id);
         if (queueRef.current.slice(index + 1).some((item) => item.youtubeVideoId)) void finishCurrent();
       }
     }, 250);
     return () => window.clearInterval(timer);
-  }, [playerReady, upNext, finishCurrent]);
+  }, [playerReady, upNext, finishCurrent, skipNotice]);
 
   function changeTrack(direction: -1 | 1) {
     if (!canControlPlayback()) return;
@@ -238,10 +238,8 @@ export function YouTubeAdminPlayer({ queue, onTrackCompleted }: { queue: SongReq
   }
 
   function togglePlayback() {
-    if (playing) {
-      if (!canControlPlayback()) return;
-      playerRef.current?.pauseVideo();
-    } else playerRef.current?.playVideo();
+    if (playing) playerRef.current?.pauseVideo();
+    else playerRef.current?.playVideo();
   }
 
   function seekPlayback(seconds: number) {
@@ -291,7 +289,10 @@ export function YouTubeAdminPlayer({ queue, onTrackCompleted }: { queue: SongReq
           {current?.albumImageUrl ? <Image src={current.albumImageUrl} alt={`${current.albumName} 앨범 표지`} width={48} height={48} className="size-12 rounded-lg object-cover" /> : <span className="grid size-12 place-items-center rounded-lg bg-white/10"><Music2 size={20} /></span>}
           <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{current?.name ?? "재생 대기"}</p><p className="truncate text-xs text-white/55">{current?.youtubeVideoTitle ?? `${playableCount}곡 준비됨`}</p></div>
           <div className="relative flex items-center gap-2">
-            {skipNotice && <p role="status" className="pointer-events-none absolute bottom-[calc(100%+0.75rem)] right-0 z-40 w-64 rounded-xl border border-amber-400/40 bg-[#2d2412] px-3 py-2 text-center text-xs font-semibold leading-5 text-amber-100 shadow-xl">{skipNotice}</p>}
+            <p role="status" aria-hidden={!skipNotice} className={`pointer-events-none absolute bottom-[calc(100%+0.75rem)] right-0 z-40 w-64 rounded-xl border border-black/10 bg-white px-3 py-2 text-center text-xs font-semibold leading-5 text-[#171719] shadow-xl transition-[opacity,transform] duration-200 ease-out motion-reduce:transition-none ${skipNotice ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"}`}>
+              <span className="block">액세스 거부됨:</span>
+              <span className="block">{skipRemainingSeconds === null ? "--분 --초" : formatCountdown(skipRemainingSeconds)} 뒤에 사용할 수 있습니다.</span>
+            </p>
             <button type="button" aria-label="이전 곡" onClick={() => changeTrack(-1)} disabled={!current} className="grid size-9 place-items-center rounded-full text-white/70 hover:text-white disabled:opacity-30"><SkipBack size={19} fill="currentColor" /></button>
             <button type="button" aria-label={playing ? "일시정지" : "재생"} onClick={togglePlayback} disabled={!current} className="grid size-10 place-items-center rounded-full bg-white text-black disabled:opacity-30">{playing ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" />}</button>
             <button type="button" aria-label="다음 곡" onClick={() => changeTrack(1)} disabled={!current} className="grid size-9 place-items-center rounded-full text-white/70 hover:text-white disabled:opacity-30"><SkipForward size={19} fill="currentColor" /></button>
@@ -317,4 +318,8 @@ export function YouTubeAdminPlayer({ queue, onTrackCompleted }: { queue: SongReq
 function formatTime(seconds: number) {
   const whole = Math.max(0, Math.floor(seconds));
   return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, "0")}`;
+}
+
+function formatCountdown(seconds: number) {
+  return `${Math.floor(seconds / 60)}분 ${String(seconds % 60).padStart(2, "0")}초`;
 }
