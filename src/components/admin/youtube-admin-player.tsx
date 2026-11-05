@@ -10,6 +10,8 @@ import type { YouTubePlayer } from "@/types/youtube-iframe";
 export function YouTubeAdminPlayer({ queue, onTrackCompleted }: { queue: SongRequestRecord[]; onTrackCompleted: (requestId: string) => Promise<boolean> }) {
   const shellRef = useRef<HTMLElement | null>(null);
   const hostRef = useRef<HTMLDivElement | null>(null);
+  const controlsRef = useRef<HTMLDivElement | null>(null);
+  const controlsTimerRef = useRef<number | null>(null);
   const playerRef = useRef<YouTubePlayer | null>(null);
   const queueRef = useRef(queue);
   const completedRef = useRef(onTrackCompleted);
@@ -25,6 +27,8 @@ export function YouTubeAdminPlayer({ queue, onTrackCompleted }: { queue: SongReq
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(100);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [controlsVisible, setControlsVisible] = useState(true);
+  const [controlsHeight, setControlsHeight] = useState(160);
   const [message, setMessage] = useState("");
 
   useEffect(() => { queueRef.current = queue; }, [queue]);
@@ -34,10 +38,46 @@ export function YouTubeAdminPlayer({ queue, onTrackCompleted }: { queue: SongReq
   }, []);
 
   useEffect(() => {
-    const onChange = () => setIsFullscreen(document.fullscreenElement === shellRef.current);
+    const onChange = () => {
+      setIsFullscreen(document.fullscreenElement === shellRef.current);
+      setControlsVisible(true);
+    };
     document.addEventListener("fullscreenchange", onChange);
     return () => document.removeEventListener("fullscreenchange", onChange);
   }, []);
+
+  const revealControls = useCallback(() => {
+    if (!isFullscreen) return;
+    setControlsVisible(true);
+    if (controlsTimerRef.current !== null) window.clearTimeout(controlsTimerRef.current);
+    controlsTimerRef.current = window.setTimeout(() => setControlsVisible(false), 3_000);
+  }, [isFullscreen]);
+
+  useEffect(() => {
+    if (!isFullscreen) return;
+    const controls = controlsRef.current;
+    if (!controls) return;
+    const observer = new ResizeObserver(() => setControlsHeight(controls.getBoundingClientRect().height));
+    observer.observe(controls);
+    setControlsHeight(controls.getBoundingClientRect().height);
+    return () => observer.disconnect();
+  }, [isFullscreen]);
+
+  useEffect(() => {
+    if (!isFullscreen) {
+      if (controlsTimerRef.current !== null) window.clearTimeout(controlsTimerRef.current);
+      controlsTimerRef.current = null;
+      return;
+    }
+    const onKeyDown = () => revealControls();
+    document.addEventListener("keydown", onKeyDown);
+    controlsTimerRef.current = window.setTimeout(() => setControlsVisible(false), 3_000);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      if (controlsTimerRef.current !== null) window.clearTimeout(controlsTimerRef.current);
+      controlsTimerRef.current = null;
+    };
+  }, [isFullscreen, revealControls]);
 
   const playRequest = useCallback((request: SongRequestRecord) => {
     if (!request.youtubeVideoId || !playerRef.current) return;
@@ -154,12 +194,12 @@ export function YouTubeAdminPlayer({ queue, onTrackCompleted }: { queue: SongReq
   return (
     <>
       <Script src="https://www.youtube.com/iframe_api" strategy="afterInteractive" onReady={() => { if (window.YT?.Player) setSdkReady(true); }} onError={() => setMessage("YouTube 플레이어를 불러오지 못했어요.")} />
-      <section ref={shellRef} className={`flex flex-col overflow-hidden bg-[#141414] text-white shadow-xl ${isFullscreen ? "relative h-dvh w-screen" : "mb-5 gap-3 rounded-3xl p-3 sm:p-4"}`}>
+      <section ref={shellRef} onPointerMove={revealControls} onPointerDown={revealControls} className={`flex flex-col overflow-hidden bg-[#141414] text-white shadow-xl ${isFullscreen ? "relative h-dvh w-screen" : "mb-5 gap-3 rounded-3xl p-3 sm:p-4"}`}>
         <div className={`flex items-center justify-between gap-3 ${isFullscreen ? "absolute inset-x-0 top-0 z-30 bg-gradient-to-b from-black/85 via-black/50 to-transparent px-4 pb-10 pt-4 sm:px-6" : ""}`}>
           <div className="min-w-0"><h2 className="truncate text-lg font-bold sm:text-xl">{upNext ? "잠시 후 다음 곡" : current?.name ?? "재생 중인 곡이 없어요"}</h2><p className="truncate text-sm text-white/60">{upNext ? `${upNext.name} · ${upNext.artists}` : current?.artists ?? "승인된 목록을 재생해 보세요."}</p></div>
           <button type="button" onClick={() => void toggleFullscreen()} aria-label={isFullscreen ? "전체화면 닫기" : "전체화면으로 보기"} className="grid size-10 shrink-0 place-items-center rounded-full bg-white/10 hover:bg-white/20">{isFullscreen ? <Minimize2 size={18} /> : <Expand size={18} />}</button>
         </div>
-        <div className={`flex min-h-0 flex-1 items-center justify-center ${isFullscreen ? "w-full" : ""}`}>
+        <div className={`flex min-h-0 flex-1 items-center justify-center ${isFullscreen ? "absolute inset-x-0 top-0 transition-[bottom] duration-500 ease-out motion-reduce:transition-none" : ""}`} style={isFullscreen ? { bottom: controlsVisible ? controlsHeight : 0 } : undefined}>
           <div className={`relative overflow-hidden bg-black ${isFullscreen ? "h-full w-full" : "aspect-video w-full max-w-[1600px] rounded-xl"}`} aria-label="YouTube 영상 플레이어">
             <div ref={hostRef} className="pointer-events-none absolute inset-0" />
             <div aria-hidden="true" className="absolute inset-0 z-10 bg-transparent" />
@@ -177,7 +217,7 @@ export function YouTubeAdminPlayer({ queue, onTrackCompleted }: { queue: SongReq
             )}
           </div>
         </div>
-        <div className={isFullscreen ? "relative z-30 flex shrink-0 flex-col gap-3 bg-[#101820] px-4 py-3 sm:px-6 sm:py-4" : "flex flex-col gap-3"}>
+        <div ref={controlsRef} inert={isFullscreen && !controlsVisible} className={isFullscreen ? `absolute inset-x-0 bottom-0 z-30 flex flex-col gap-3 bg-[#101820] px-4 py-3 transition-transform duration-500 ease-out motion-reduce:transition-none sm:px-6 sm:py-4 ${controlsVisible ? "translate-y-0" : "pointer-events-none translate-y-full"}` : "flex flex-col gap-3"}>
         <div className="flex flex-wrap items-center gap-3">
           {current?.albumImageUrl ? <Image src={current.albumImageUrl} alt={`${current.albumName} 앨범 표지`} width={48} height={48} className="size-12 rounded-lg object-cover" /> : <span className="grid size-12 place-items-center rounded-lg bg-white/10"><Music2 size={20} /></span>}
           <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{current?.name ?? "재생 대기"}</p><p className="truncate text-xs text-white/55">{current?.youtubeVideoTitle ?? `${playableCount}곡 준비됨`}</p></div>
@@ -193,11 +233,12 @@ export function YouTubeAdminPlayer({ queue, onTrackCompleted }: { queue: SongReq
             <label className="flex w-40 items-center gap-2 text-white/65"><Volume2 size={17} /><input type="range" aria-label="음량" min={0} max={100} value={volume} onChange={(event) => { const next = Number(event.target.value); setVolume(next); playerRef.current?.setVolume(next); }} disabled={!playerReady} className="h-1 flex-1 accent-[#64d2ff]" /></label>
             {!isFullscreen && <button type="button" disabled={!playerReady || !playableCount} onClick={() => { const first = queueRef.current.find((item) => item.youtubeVideoId); if (first) playRequest(first); }} className="inline-flex h-10 items-center gap-2 rounded-full bg-[#64d2ff] px-4 text-sm font-bold text-[#101820] disabled:opacity-40"><ListMusic size={16} />목록 재생</button>}
           </div>
-          <div className="flex items-center gap-2 rounded-xl bg-white/90 px-3 py-2 text-[#171719] shadow-lg"><span className="text-xs font-semibold tracking-tight">Powered by. DPS Team</span><Image src="https://assets.dpsteam.kr/brend/D-Black.png" alt="DPS Team" width={84} height={32} className="h-5 w-auto object-contain" /></div>
+          {!isFullscreen && <div className="flex items-center gap-2 rounded-xl bg-white/90 px-3 py-2 text-[#171719] shadow-lg"><span className="text-xs font-semibold tracking-tight">Powered by. DPS Team</span><Image src="https://assets.dpsteam.kr/brend/D-Black.png" alt="DPS Team" width={84} height={32} className="h-5 w-auto object-contain" /></div>}
         </div>
         {message && <p role="status" className="rounded-xl bg-white/10 px-3 py-2 text-xs text-white/75">{message}</p>}
         {!playableCount && <p className="text-xs text-amber-200">재생하려면 승인된 곡에 YouTube 영상을 선택해 주세요.</p>}
         </div>
+        {isFullscreen && <div className="pointer-events-none absolute bottom-3 right-4 z-40 flex items-center gap-2 rounded-xl bg-white/90 px-3 py-2 text-[#171719] shadow-lg sm:bottom-4 sm:right-6"><span className="text-xs font-semibold tracking-tight">Powered by. DPS Team</span><Image src="https://assets.dpsteam.kr/brend/D-Black.png" alt="DPS Team" width={84} height={32} className="h-5 w-auto object-contain" /></div>}
       </section>
     </>
   );
