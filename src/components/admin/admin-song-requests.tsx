@@ -200,8 +200,8 @@ export function AdminSongRequests() {
                   먼저 신청된 곡부터 재생해 주세요
                 </h2>
                 <p className="mt-1 text-xs leading-5 text-[#497056]">
-                  선택한 YouTube 영상을 위에서 아래 순서로 재생해요. 끝까지
-                  재생된 곡은 자동으로 재생 완료 목록으로 이동합니다.
+                  선택한 YouTube 영상을 위에서 아래 순서로 재생해요. 다음 곡이 있으면
+                  영상 종료 3초 전에 신청 안내를 표시하고 자동으로 넘어갑니다.
                 </p>
               </div>
             </section>
